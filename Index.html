@@ -1,571 +1,474 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>The Weeknd</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ignis: La Prueba del Fuego</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        :root {
+            --bg-dark: #1a1c22;
+            --bg-game: #302025;
+            --ui-accent: #ffaa00;
+            --text-color: #ffffff;
+            --card-color: #55333a;
+            --card-hover: #70444e;
+            --hp-low: #ff0000;
+            --energy-color: #00aaff;
+            --damage-color: #ff4500;
+            --heal-color: #00ff88;
+        }
+
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: var(--bg-dark);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 10px;
+            text-shadow: 2px 2px 0px #000000; 
+        }
+
+        #app-container {
+            background-color: var(--bg-game);
+            border: 6px solid #4b4d63;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 5px var(--ui-accent) inset;
+            border-radius: 4px;
+            padding: 1rem;
+            max-width: 1200px;
+            width: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            position: relative; 
+        }
+
+        .text-neon {
+            color: var(--ui-accent);
+            text-shadow: 2px 2px 0px #000, 0 0 5px var(--damage-color);
+        }
+
+        /* --- BOTONES SUPERIORES --- */
+        .top-btn {
+            position: absolute;
+            top: 15px;
+            width: 45px;
+            height: 45px;
+            background-color: transparent;
+            background-size: cover;
+            background-repeat: no-repeat;
+            border: none;
+            cursor: pointer;
+            z-index: 50;
+            transition: transform 0.1s;
+            filter: drop-shadow(2px 2px 0px #000); 
+        }
+        .top-btn:hover {
+            transform: scale(1.1);
+            filter: brightness(1.2) drop-shadow(2px 2px 0px #000);
+        }
+
+        #pause-button { left: 15px; background-image: url('Pausa.png'); }
+        #settings-button { left: 70px; background-image: url('Menu.png'); }
+        #exit-button { right: 15px; background-image: url('Salir.png'); }
+
+        /* --- ICONOS --- */
+        .stat-icon { width: 20px; height: 20px; display: inline-block; vertical-align: middle; margin-right: 5px; border: 1px solid #000; border-radius: 2px; }
+        .shield-icon { width: 24px; height: 24px; display: inline-block; vertical-align: sub; margin-left: 5px; }
+
+        /* --- MENÚ PRINCIPAL --- */
+        #main-menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: var(--bg-dark); z-index: 200; display: flex; justify-content: center; align-items: center; flex-direction: column; background-image: url('Menu de entrada.png'); background-size: contain; background-position: center; background-repeat: no-repeat; }
+        #menu-content { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; background-color: transparent; }
+        .menu-button { font-family: 'Press Start 2P', cursive; background-color: var(--damage-color); color: var(--bg-dark); padding: 12px 25px; margin: 10px 0; border: 4px solid var(--ui-accent); cursor: pointer; box-shadow: 0 6px #000; transition: background-color 0.1s; font-size: 1rem; width: 250px; text-align: center; display: flex; justify-content: center; align-items: center; text-shadow: none; }
+        .menu-button:hover { background-color: #ff6666; transform: translateY(-2px); box-shadow: 0 8px #000; }
+        #menu-button-group { margin-top: 0; margin-bottom: 15vh; }
+
+        /* --- BARRAS DE HP --- */
+        .health-bar-container { border: 2px solid var(--text-color); background-color: #000000; height: 12px; margin-top: 4px; }
+        .health-bar-fill { height: 100%; background-color: var(--ui-accent); transition: width 0.5s ease-out; }
+
+        /* --- CAMPO DE BATALLA --- */
+        #battle-field { background-image: url(Escenario1.png); background-size: cover; background-position: center; border: 3px solid #1a1c22; height: 300px; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; padding: 10px 20px; overflow: hidden; position: relative; }
+        .character-model { width: 200px; height: 200px; display: inline-block; transition: transform 0.1s, filter 0.1s; background-size: contain; background-repeat: no-repeat; background-position: bottom center; }
+
+        /* --- ANIMACIONES --- */
+        .shake { animation: shake-animation 0.2s 3 ease-in-out; }
+        @keyframes shake-animation { 0% { transform: translateX(0) } 25% { transform: translateX(-5px) } 75% { transform: translateX(5px) } 100% { transform: translateX(0) } }
+        .attack-effect { animation: attack-duration 0.3s ease-in-out; }
+        @keyframes attack-duration { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        .final-attack-effect { animation: final-attack-duration 1.0s ease-in-out; z-index: 20; position: relative; transform-origin: bottom center; }
+        @keyframes final-attack-duration { 0% { transform: scale(1); filter: brightness(1); } 10% { transform: scale(0.9); filter: brightness(0.8); } 40% { transform: scale(1.8); filter: brightness(1.5) contrast(1.3); } 60% { transform: scale(1.8); filter: brightness(1.5) contrast(1.3); } 100% { transform: scale(1); filter: brightness(1); } }
+
+        /* --- CARTAS (TEXTO MÁS GRANDE) --- */
+        .card {
+            background-image: url('Marco_Carta.png'); 
+            background-size: 100% 100%;
+            background-color: transparent; 
+            border: none; border-radius: 0px;
+            padding: 22px 18px 18px 18px; 
+            cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
+            height: 100%; display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
+        }
+        .card:hover { transform: translateY(-4px); box-shadow: 0 0 15px var(--damage-color); }
+        
+        /* MODIFICADO: TEXTO MÁS GRANDE */
+        .card-title { 
+            font-size: 0.9rem; /* AUMENTADO */
+            color: var(--ui-accent); 
+            text-shadow: 3px 3px 0px #000; 
+            font-weight: 900;
+            margin-top: 2px;
+            text-align: left;
+        }
+        .card-cost { 
+            color: var(--energy-color); 
+            font-size: 0.9rem; /* AUMENTADO */
+            font-weight: 900;
+            text-shadow: 3px 3px 0px #000;
+            margin-top: 2px;
+            text-align: right;
+        }
+        .card-effect { 
+            font-size: 0.75rem; /* AUMENTADO */
+            margin-top: 10px; 
+            margin-bottom: 10px;
+            color: #ffffff; 
+            text-shadow: 2px 2px 0px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; 
+            text-align: center;
+            line-height: 1.6;
+            font-weight: bold;
+        }
+
+        /* Registro de eventos */
+        #log-panel { background-color: rgba(0, 0, 0, 0.85); border: 2px solid var(--text-color); height: 120px; overflow-y: auto; padding: 8px; font-size: 0.75rem; line-height: 1.5; color: var(--text-color); }
+        .log-entry-player { color: var(--ui-accent); } .log-entry-ai { color: var(--damage-color); } .log-entry-heal { color: var(--heal-color); } .log-entry-system { color: #8888ff; }
+
+        /* --- OVERLAYS --- */
+        #game-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.95); display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; z-index: 100; }
+        #overlay-content { border: 4px solid var(--ui-accent); background-color: var(--bg-dark); padding: 20px; }
+        #final-banner { width: 100%; max-width: 450px; height: 250px; background-size: contain; background-repeat: no-repeat; background-position: center; margin-bottom: 20px; }
+
+        .restart-button { background-color: var(--damage-color); color: var(--bg-dark); padding: 10px 20px; border: 2px solid var(--ui-accent); cursor: pointer; box-shadow: 0 4px #000; transition: background-color 0.1s; }
+        .restart-button:hover { background-color: #ff6666; }
+        
+        #final-restart-button { background-color: transparent; color: transparent; padding: 0; width: 64px; height: 64px; border: none; box-shadow: none; background-image: url('Salir.png'); background-size: cover; background-repeat: no-repeat; margin-top: 20px; cursor: pointer; }
+        #final-restart-button:hover { transform: scale(1.1); }
+
+        /* Selección */
+        .equipment-option { background-color: #2b2d38; border: 4px solid var(--text-color); padding: 15px; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; box-shadow: 6px 6px 0px #111; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-around; }
+        .equipment-option:hover { transform: translateY(-2px); box-shadow: 8px 8px 0px var(--ui-accent); }
+        .equipment-sprite { width: 80px; height: 80px; margin-bottom: 10px; background-size: contain; background-repeat: no-repeat; background-position: center; border: 1px solid var(--ui-accent); background-color: #111111; }
+
+        @media (max-width: 600px) {
+            .card { padding: 12px; } .card-title, .card-cost { font-size: 0.7rem; } .card-effect { font-size: 0.6rem; } #log-panel { height: 100px; font-size: 0.6rem; } .character-model { width: 80px; height: 80px; }
+        }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>The Weeknd</h1>
-    <nav>
-      <a href="#inicio">Inicio</a>
-      <a href="#eventos">Eventos</a>
-      <a href="#novedades">Novedades</a>
-      <a href="#contacto">Contacto</a>
-      <a href="#">seccion</a>
-    </nav>
-  </header>
-  <main>
-    <section id="login">
-      <h2>Crear usuario / Iniciar sesión</h2>
-      <form>
-        <label for="username">Nombre de usuario:</label>
-        <input type="text" id="username" name="username">
-        <label for="password">Contraseña:</label>
-        <input type="password" id="password" name="password">
-        <button type="submit">Iniciar sesión</button>
-        <button type="submit">Crear usuario</button>
-      </form>
-    </section>
-    
-    <section id="Inicio">
-      
-      <h2>Biografía</h2>
-      <p>Abel Makkonen Tesfaye, conocido profesionalmente como The Weeknd, es un cantante, compositor y productor canadiense de R&B y pop alternativo. Nació el 16 de febrero de 1990 en Toronto, Ontario.</p>
 
-      <h3>Video musical mas visto</h3>
-      <video src="../Videos/Video musical mas visto.mp4" controls></video>
-      <h4>album</h4>
-      <ul>
-        <li>Kiss Land (2013)</li>
-        <img src="../Imagenes/Album kiss land.png" alt="Foto del album">
-        <li>Beauty Behind the Madness (2015)</li>
-        <img src="../Imagenes/Album Beauty Behind the Madness.png" alt="Foto del album">
-        <li>Starboy (2016)</li>
-        <img src="../Imagenes/Album starboy.png" alt="Foto del album">
-      </ul>
-      <h5>Top Canciones</h5>
-      <ul>
-        <li>Blinding ligths(2019)</li>
-        <li>cant feel my face (2015)</li>
-        <li>Starboy (2016)</li>
-        <li>The hills(2015)</li>
-        <li>i felt it coming</li>
-      </ul>
-    </section>
-    <section id="Eventos">
-      <h2>Eventos</h2>
-      <h3>Video de concierto en vivo</h3>
-      <video src="../Videos/Video de concierto en vivo.mp4" controls></video>
-    <h4>Fecha de Eventos</h4>
-    <p>The Weeknd tendrá su segundo concierto en el Estadio Bicentenario de La Florida el 16 de octubre del 2023. La preventa comenzará el 14 de diciembre a las 11:00 horas para clientes Entel o Scotiabank. Por su parte, la venta general será el 15 de diciembre a las 11:00 horas.</p>
-    <img src="../Imagenes/1 evento.png" alt="Captura de pantalla del evento de The Weeknd">
-    <p>La próxima etapa de la gira comenzará el sábado 10 de junio en Manchester, Reino Unido en el Etihad Stadium, con paradas en Europa y América Latina. Visitará ciudades como Estocolmo, Ámsterdam, Ciudad de México, Río de Janeiro, Bogotá y muchas más antes de concluir su gira en Santiago, Chile el Domingo 15 de octubre en el Estadio Bicentenario de La Florida</p>
-    <img src="../Imagenes/2 evento.png" alt="Captura de pantalla del evento de The Weeknd">
-    <p>The Weeknd se presentará en Bogotá el próximo 4 de octubre del 2023 en el Estadio Nemesio Camacho El Campín de la ciudad de Bogotá. Las entradas para el concierto comenzarán a circular para preventa y clientes del Grupo Aval, desde el 1 de diciembre.</p>
-    <img src="../Imagenes/3 evento.png" alt="Captura de pantalla del evento de The Weeknd">
-    </section>
-    <section id="Novedades">
-      <h2>Novedades</h2>
-      <div>
-        <novedades src="../Videos/Novedades.mp4" controls>
-          <p>“Estuve solo por mucho tiempo. Tal vez puedas mostrarme cómo amar (...) Ni siquiera tenés que hacer demasiado. Podés encenderme con solo un toque”. Eso dicen los primeros versos de “Blinding Lights”, la canción del canadiense The Weeknd que, hasta hoy, es la más escuchada desde que existe Spotify: 3.000 millones de reproducciones.
-            Se sabe que para ser un éxito de semejantes dimensiones es necesario que la creación no esté destinada a un gueto sino que tenga llegada a la mayor cantidad de público posible. Del resto, sobre todo para conquistar miles de millones de reproducciones, se encarga la estrategia de venta del producto. Porque “Blinding Lights” tuvo importantes canales de difusión que le permitieron llegar a tantos oídos. Sus aptitudes de hit hicieron que luego esos oídos quisieran volver a escucharla, una y otra vez.</p>
-            <div> 
-              <h1>Novedades the weeknd</h1>
-              <img src="../Imagenes/the weeknd novedad 1.png" alt="imagen de evento">
-              <h3>Novedades the weeknd starboy</h3>
-              <img src="../Imagenes/The weeknd novedad 2.png" alt="imagen de evento">
-              <h4>Novedad</h4>
-             <link rel="stylesheet" href="CSS/style.CSS">
+    <div id="main-menu-overlay">
+        <div id="menu-content">
+            <div id="menu-button-group"> 
+                 <button id="start-game-button" class="menu-button">EMPEZAR <span class="ml-2">🔥</span></button>
+                <button id="credits-button" class="menu-button">CRÉDITOS</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="relative">
+        
+        <button id="pause-button" class="top-btn" title="Pausa"></button>
+        <button id="settings-button" class="top-btn" title="Ajustes"></button>
+        <button id="exit-button" class="top-btn" title="Salir"></button>
+
+        <h1 class="text-2xl text-center mb-2 text-neon" style="margin-top: 30px;">IGNIS: LA PRUEBA DEL FUEGO</h1>
+        <p class="text-center text-xs mb-4" id="encounter-display">Encuentro 1/3</p>
+
+        <div id="battle-field">
+            <div id="player-model-container" class="flex flex-col items-center">
+                <span id="player-model" class="character-model"></span>
+                <p class="text-xs mt-1 text-neon">IGNIS</p>
             </div>
             
-            
-      <section id="Contacto">
-           <img src="../Imagenes/logo.png" alt="">
-           <h1>Contacto</h1>
-           <p>Estimado usuario,
+            <div id="ai-model-container" class="flex flex-col items-center">
+                <span id="ai-model" class="character-model"></span> 
+                <p class="text-xs mt-1" id="ai-name-display" style="color: var(--damage-color);">ESPECTRO IA</p>
+            </div>
+        </div>
 
-            En nombre de todo el equipo de la página sobre The Weeknd, quisiera agradecerle por elegir nuestra plataforma para obtener información y disfrutar de la música de este increíble artista.
-            
-            Nos complace saber que ha encontrado útil y valiosa la información que proporcionamos sobre la carrera musical de The Weeknd. Nos esforzamos por mantenernos actualizados y brindar información precisa y completa para que nuestros usuarios puedan disfrutar al máximo de la experiencia de aprendizaje.
-            
-            Agradecemos su tiempo y dedicación al explorar nuestro sitio web. Esperamos que haya encontrado lo que estaba buscando y que hayamos cumplido con sus expectativas. Si tiene algún comentario o sugerencia sobre cómo podemos mejorar su experiencia en nuestro sitio, no dude en hacérnoslo saber.
-            
-            Una vez más, gracias por elegir nuestra página sobre The Weeknd. Esperamos seguir siendo su recurso de confianza para todo lo relacionado con este talentoso artista.
-            Saludos cordiales,
-            El equipo de la página sobre The Weeknd.</p>
-    
-              <form>
-                <label for="nombre">Nombre:</label>
-                <input type="text" id="nombre" name="nombre"><br><br>
-            
-                <label for="email">Correo electrónico:</label>
-                <input type="email" id="email" name="email"><br><br>
-            
-                <input type="submit" value="Enviar">
+        <div id="status-panels" class="flex justify-between mb-2 text-sm">
+            <div class="w-1/2 p-2 mr-2 border-2 border-green-500">
+                <p class="text-lg text-neon flex justify-between items-center">
+                    <span>IGNIS <img src="Icono_Escudo.png" class="shield-icon" title="Defensa"></span> 
+                    <span id="player-equipment" class="text-xs text-red-300 font-normal"></span>
+                </p>
+                <div class="flex items-center mt-1">
+                    <img src="Icono_HP.png" class="stat-icon"> 
+                    <span class="mr-2">HP:</span> 
+                    <span id="player-hp">100</span> / 100
+                </div>
+                <div class="health-bar-container"><div id="player-health-fill" class="health-bar-fill" style="width: 100%;"></div></div>
                 
+                <div class="flex items-center mt-2" style="color: var(--energy-color);">
+                    <img src="Icono_Energia.png" class="stat-icon">
+                    <span class="mr-2">ENERGÍA:</span>
+                    <span id="player-energy">3</span> / 3
+                </div>
+            </div>
+            
+            <div class="w-1/2 p-2 ml-2 border-2 border-red-500">
+                <p class="text-lg flex justify-between items-center" id="ai-status-name" style="color: var(--damage-color);">
+                    <span>ESPECTRO IA <img src="Icono_Escudo.png" class="shield-icon" title="Defensa"></span>
+                </p>
+                <div class="flex items-center mt-1">
+                    <img src="Icono_HP.png" class="stat-icon">
+                    <span class="mr-2">HP:</span>
+                    <span id="ai-hp">100</span> / 100
+                </div>
+                <div class="health-bar-container"><div id="ai-health-fill" class="health-bar-fill" style="width: 100%; background-color: var(--damage-color);"></div></div>
                 
-              </form>
+                <div class="flex items-center mt-2" style="color: var(--energy-color);">
+                    <img src="Icono_Energia.png" class="stat-icon">
+                    <span class="mr-2">ENERGÍA:</span>
+                    <span id="ai-energy">3</span> / 3
+                </div>
+            </div>
+        </div>
 
-      </section>
-        </novedades>
-      </div>
-      
-    </section>
-  </main>
-  <footer>
-    Desarrollado por: [Juan Diego Campo]
-  </footer>
-  <style>
-     #login {
-      width: 400px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #f0f0f0;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    }
-    
-    #login h2 {
-      font-size: 24px;
-      font-weight: bold;
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    
-    #login form {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    
-    #login label {
-      display: block;
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    
-    #login input[type="text"],
-    #login input[type="password"] {
-      width: 100%;
-      padding: 10px;
-      margin-bottom: 20px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-    }
-    
-    #login button {
-      padding: 10px;
-      background-color: #4CAF50;
-      color: #fff;
-      border: none;
-      border-radius: 5px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-    }
-    
-    #login button:hover {
-      background-color: #3e8e41;
-    }
-    
-/* Variables de CSS */
-:root {
-  --color-primary: hsla(0, 85%, 46%, 0.671);
-  --color-secondary: #222;
-  --color-text: #020202;
-  --color-white: #fff;
-}
+        <div class="mb-6">
+            <h2 class="text-sm mb-1 text-neon">REGISTRO DE TURNO</h2>
+            <div id="log-panel"></div>
+        </div>
 
-/* Reset CSS básico */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-body {
-  font-family: 'Roboto', sans-serif;
-  background-color: var(--color-primary);
-  color: var(--color-text);
-}
-  /* Header */
-  header {
-    background-color: #171717;
-    color: rgb(240, 31, 31);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1;
-  }
-  
-  header h1 {
-    margin: 0;
-    font-size: 28px;
-  }
-  
-  header nav {
-    display: flex;
-  }
-  
-  header nav a {
-    color: white;
-    text-decoration: none;
-    margin-left: 20px;
-    font-size: 18px;
-  }
-  
-  /* Sección de inicio */
-  #inicio {
-    background-color: #f2f2f2;
-    padding: 50px;
-  }
-  
-  #inicio h2 {
-    font-size: 28px;
-    margin-top: 0;
-  }
-  
-  #inicio p {
-    font-size: 18px;
-    line-height: 1.5;
-  }
-  
-  #inicio .video {
-    display: flex;
-    justify-content: center;
-    margin-top: 30px;
-  }
-  
-  #inicio .video video {
-    width: 800px;
-    height: 450px;
-  }
-  
-  #inicio .albums {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    margin-top: 50px;
-  }
-  
-  #inicio .albums li {
-    width: calc(33.33% - 20px);
-    margin-bottom: 20px;
-    padding: 10px;
-    background-color: white;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-    border-radius: 5px;
-    text-align: center;
-  }
-  
-  #inicio .albums img {
-    width: 100%;
-    height: auto;
-    border-radius: 5px;
-  }
-  
-  #inicio .albums h4 {
-    margin-top: 10px;
-    font-size: 20px;
-  }
-  
-  #inicio .songs {
-    margin-top: 50px;
-  }
-  
-  #inicio .songs h3 {
-    font-size: 28px;
-    margin-top: 0;
-  }
-  
-  #inicio .songs ol {
-    font-size: 18px;
-    line-height: 1.5;
-  }
-  
-  #inicio .songs li {
-    margin-bottom: 10px;
-  }
-  
-  /* Sección de eventos */
-  #eventos {
-    background-color: #e5e5e5;
-    padding: 50px;
-  }
-  
-  #eventos h2 {
-    font-size: 28px;
-    margin-top: 0;
-  }
-  
-  #eventos .concerts {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 50px;
-  }
-  
-  #eventos .concerts .concert {
-    width: calc(50% - 10px);
-    background-color: white;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
-    border-radius: 5px;
-    overflow: hidden;
-  }
-  
-  #eventos .concerts .concert img {
-    width: 100%;
-    height: auto;
-  }
-  
-  #eventos .concerts .concert .details {
-    padding: 10px;
-  }
-  
-  #eventos .concerts .concert .details h4 {
-    font-size: 20 ;
-  }
-  
-  #eventos .concerts .concert .details p {
-  font-size: 16px;
-  margin-top: 5px;
-  }
-  
-  #eventos .concerts .concert .details a {
-  display: block;
-  text-align: center;
-  margin-top: 10px;
-  padding: 10px;
-  background-color: #f2f2f2;
-  color: black;
-  text-decoration: none;
-  border-radius: 5px;
-  }
-  
-  /* Sección de contacto */
-  #contacto {
-  background-color: #171717;
-  color: white;
-  padding: 50px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  }
-  
-  #contacto h2 {
-  font-size: 28px;
-  margin-top: 0;
-  }
-  
-  #contacto form {
-  margin-top: 50px;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  }
-  
-  #contacto form label {
-  width: 100%;
-  font-size: 18px;
-  margin-bottom: 10px;
-  }
-  
-  #contacto form input[type=text],
-  #contacto form input[type=email],
-  #contacto form textarea {
-  width: calc(50% - 10px);
-  padding: 10px;
-  border: none;
-  border-radius: 5px;
-  margin-bottom: 10px;
-  }
-  
-  #contacto form textarea {
-  height: 100px;
-  }
-  
-  #contacto form input[type=submit] {
-  background-color: #f2f2f2;
-  color: black;
-  text-decoration: none;
-  padding: 10px;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  }
-  
-  #contacto form input[type=submit]:hover {
-  background-color: white;
-  color: black;
-  }
-  
-  /* Footer */
-  footer {
-  background-color: #0d0d0d;
-  color: white;
-  padding: 20px;
-  text-align: center;
-  }
-  
-  footer p {
-  margin: 0;
-  font-size: 14px;
-  }
-  
-  /* Clases */
-  .text-center {
-  text-align: center;
-  }
-  
-  /* Ids */
-  #banner {
-  height: 100vh;
-  background-image: url('https://images.unsplash.com/photo-1572000899786-7eb9f9fafe5e');
-  background-size: cover;
-  background-position: center;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  color: white;
-  text-align: center;
-  }
-  
-  #banner h1 {
-  font-size: 64px;
-  margin: 0;
-  margin-top: 100px;
-  }
-  
-  #banner h2 {
-  font-size: 32px;
-  margin: 0;
-  margin-top: 20px;
-  }
-  
-  #banner a {
-  display: block;
-  margin-top: 50px;
-  padding: 10px 20px;
-  background-color: #f2f2f2;
-  color: black;
-  text-decoration: none;
-  border-radius: 5px;
-  font-size: 24px;
-  transition: all 0.3s ease;
-  }
-  
-  #banner a:hover {
-  background-color: white;
-  color: black;
-  }
-  
-  /* Media queries */
-  @media screen and (max-width: 768px) {
-      #header nav {
-        display: none;
-      }
-      
-      #header .mobile-menu {
-        display: flex;
-      }
-      
-      #eventos .concerts .concert {
-        width: 100%;
-      }
-      
-      #eventos .concerts .concert .image img {
-        width: 100%;
-      }
-      
-      #eventos .concerts .concert .details {
-        padding: 20px;
-      }
-      
-      #eventos .concerts .concert .details h3 {
-        font-size: 24px;
-      }
-      
-      #eventos .concerts .concert .details p {
-        font-size: 14px;
-      }
-      
-      #eventos .concerts .concert .details a {
-        margin-top: 20px;
-        font-size: 14px;
-        padding: 5px;
-      }
-      
-      #contacto form input[type=text],
-      #contacto form input[type=email],
-      #contacto form textarea {
-        width: 100%;
-      }
-      .box {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 200px;
-      height: 200px;
-      background-color: #ddd;
-      border-radius: 5px;
-  }
-  
-  /* Flexbox para posicionar elementos */
-  .flex-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-  }
-  
-  .flex-box {
-      width: 200px;
-      height: 200px;
-      background-color: #ddd;
-      border-radius: 5px;
-  }
-  
-  /* Sitios web adaptables */
-  @media screen and (max-width: 600px) {
-      .flex-box {
-          width: 100px;
-          height: 100px;
-      }
-  }
-  
-  /* Accesibilidad y HTML 5 */
-  header nav ul li a {
-      display: block;
-      padding: 10px;
-      color: #333;
-      text-decoration: none;
-  }
-  
-  /* Diseño adaptable */
-  body {
-      font-size: 16px;
-      line-height: 1.5;
-  }
-  
-  @media screen and (max-width: 600px) {
-      body {
-          font-size: 14px;
-      }
-      
-  }
-    }
- </style>
+        <div id="hand-panel" class="mb-6">
+            <h2 class="text-sm mb-2 text-neon">ELIGE TU CARTA</h2>
+            <div id="card-container" class="grid grid-cols-2 md:grid-cols-3 gap-4" style="height: auto; min-height: 150px;"></div>
+        </div>
+
+        <div class="text-center">
+            <button id="next-turn-button" class="restart-button mt-4" disabled>ESPERANDO...</button>
+        </div>
+
+        <div id="game-overlay" class="absolute inset-0">
+            <div id="overlay-content" class="p-10">
+                <div id="final-banner" class="hidden"></div>
+                
+                <div id="character-selection" class="text-center">
+                    <h2 class="text-2xl mb-6 text-neon">ELIGE TU PERSONAJE</h2>
+                    <div id="character-options-container" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+                </div>
+
+                <div id="equipment-selection" class="text-center hidden">
+                    <h2 class="text-2xl mb-6 text-neon">ELIGE TU ACCESORIO INICIAL</h2>
+                    <div id="equipment-options-container" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+                </div>
+
+                <button id="final-restart-button" class="mt-6 hidden" title="Reiniciar Juego"></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATOS DEL JUEGO ---
+        const PLAYABLE_CHARACTERS = [
+            { id:'ignis', name:'IGNIS (Fuego)', sprite:'Ignis Vista en espera.png', action1:'Ignis Vista accion 1.png', action2:'Ignis Vista Accion 2.png', maxHp:100, baseDamage:10, maxEnergy:3, description: "Guerrero balanceado." },
+            { id:'orion', name:'ORION (Tanque)', sprite:'orion Vista en espera.png', action1:'orion Vista accion 1.png', action2:'orion Vista accion 2.png', maxHp:120, baseDamage:8, maxEnergy:3, description: "Resistente." },
+            { id:'sylva', name:'SYLVA (Mago)', sprite:'Sylva Vista en espera.png', action1:'Sylva Vista accion 1.png', action2:'Sylva Vista accion 2.png', maxHp:90, baseDamage:9, maxEnergy:4, description: "Energía alta." }
+        ];
+
+        function preloadImages() {
+            const images = [];
+            PLAYABLE_CHARACTERS.forEach(c => { images.push(c.sprite, c.action1, c.action2); });
+            images.push('Escenario1.png', 'Menu.png', 'Pausa.png', 'Salir.png', 'Banner_Victoria.jpg', 'Banner_Derrota.jpg', 'Marco_Carta.jpg', 'Icono_HP.jpg', 'Icono_Energia.jpg', 'Icono_Escudo.jpg');
+            images.forEach(src => { const img = new Image(); img.src = src; });
+            console.log("Imágenes precargadas.");
+        }
+
+        const CARDS = [
+            { id: 'attack', name: 'ATACAR', cost: 2, baseDamage: 10, effect: (s, t) => { let dmg = s.baseDamage||10; if(t.block>0){let b=Math.min(dmg,t.block);dmg-=b;t.block-=b;logAction(`${t.name} bloquea ${b}.`,false,'system');} if(dmg>0){t.hp-=dmg;logAction(`${s.name} ataca: ${dmg} daño.`,true,s.isPlayer?'player':'ai');animateAction(s.isPlayer?'player':'ai','attack');animateAction(t.isPlayer?'player':'ai','damage');}else{logAction(`Ataque bloqueado.`,true,'system');} }, description: 'Daño físico directo.' },
+            { id: 'defend', name: 'DEFENDER', cost: 1, effect: (s, t) => { s.block+=15; logAction(`${s.name} sube guardia.`,true,'player'); animateAction(s.isPlayer?'player':'ai','defend'); }, description: '+15 Bloqueo.' },
+            { id: 'gambit', name: 'GAMBITO', cost: 3, effect: (s, t) => { let dmg=20; s.hp-=5; if(t.block>0){let b=Math.min(dmg,t.block);dmg-=b;t.block-=b;} if(dmg>0)t.hp-=dmg; logAction(`${s.name} sacrifica vida y golpea.`,true,'player'); animateAction(s.isPlayer?'player':'ai','attack'); animateAction(t.isPlayer?'player':'ai','damage'); }, description: '20 Daño, -5 HP.' },
+            { id: 'final_attack', name: 'ATAQUE FINAL', cost: 3, effect: (s, t) => { let dmg=50; if(t.block>0){let b=Math.min(dmg,t.block);dmg-=b;t.block-=b;} if(dmg>0)t.hp-=dmg; logAction(`¡${s.name} USA ATAQUE FINAL!`,true,'player'); animateAction(s.isPlayer?'player':'ai','final_attack'); animateAction(t.isPlayer?'player':'ai','damage'); }, description: 'Golpe definitivo (50 daño).' },
+            { id: 'recharge', name: 'RECARGAR', cost: 0, effect: (s) => { s.energy=Math.min(s.maxEnergy,s.energy+2); logAction(`${s.name} recarga energía.`,true,'player'); }, description: '+2 Energía.' },
+            { id: 'meditate', name: 'MEDITAR', cost: 1, effect: (s) => { s.hp=Math.min(s.maxHp,s.hp+15); logAction(`${s.name} se cura.`,true,'heal'); }, description: '+15 HP.' }
+        ];
+
+        const ENEMIES = [
+            { name: "ESPECTRO IA", sprite: "Espectro_IA.png.png", maxHp: 80, energy: 3, maxEnergy:3, strategy: 'basic' },
+            { name: "GUERRERO ORCO", sprite: "Guerrero_Orco.png", maxHp: 120, energy: 3, maxEnergy:3, strategy: 'aggressive' },
+            { name: "MAGO SOMBRÍO", sprite: "Mago_Sombrio.png", maxHp: 90, energy: 4, maxEnergy:4, strategy: 'energy_focus' }
+        ];
+
+        const EQUIPMENT = [
+            { id: 'guante', name: 'Guante Poder', description: '+5 Daño', sprite: 'Guante.png', apply: (p) => p.baseDamage += 5 },
+            { id: 'cristal', name: 'Cristal Energía', description: '+1 Energía Max', sprite: 'Cristal.png', apply: (p) => { p.maxEnergy++; p.energy++; } },
+            { id: 'amuleto', name: 'Amuleto Vida', description: '+20 HP', sprite: 'Corazon.png', apply: (p) => { p.maxHp+=20; p.hp+=20; } }
+        ];
+
+        let gameState = { player: { name: 'IGNIS', maxHp: 100, hp: 100, energy: 3, maxEnergy: 3, block: 0, selectedCard: null, isPlayer: true, baseDamage: 10 }, ai: { name: '', maxHp: 0, hp: 0, energy: 0, maxEnergy: 0, block: 0, isPlayer: false, sprite: '' }, currentEncounterIndex: 0, turn: 1, turnPhase: 'main_menu', isGameOver: false };
+        let baseCharacterStats = PLAYABLE_CHARACTERS[0]; 
+
+        const dom = {
+            playerHp: document.getElementById('player-hp'), playerEnergy: document.getElementById('player-energy'), playerHealthFill: document.getElementById('player-health-fill'), playerEquipment: document.getElementById('player-equipment'),
+            aiHp: document.getElementById('ai-hp'), aiEnergy: document.getElementById('ai-energy'), aiHealthFill: document.getElementById('ai-health-fill'),
+            cardContainer: document.getElementById('card-container'), logPanel: document.getElementById('log-panel'), nextTurnButton: document.getElementById('next-turn-button'),
+            gameOverlay: document.getElementById('game-overlay'), finalBanner: document.getElementById('final-banner'), finalRestartButton: document.getElementById('final-restart-button'),
+            playerModel: document.getElementById('player-model'), aiModel: document.getElementById('ai-model'), aiNameDisplay: document.getElementById('ai-name-display'), encounterDisplay: document.getElementById('encounter-display'),
+            characterSelection: document.getElementById('character-selection'), characterOptionsContainer: document.getElementById('character-options-container'),
+            equipmentSelection: document.getElementById('equipment-selection'), equipmentOptionsContainer: document.getElementById('equipment-options-container'),
+            mainMenuOverlay: document.getElementById('main-menu-overlay'), appContainer: document.getElementById('app-container'), startGameButton: document.getElementById('start-game-button'), creditsButton: document.getElementById('credits-button'), 
+            pauseButton: document.getElementById('pause-button'), settingsButton: document.getElementById('settings-button'), exitButton: document.getElementById('exit-button')
+        };
+
+        function logAction(msg, isPlayer, type) {
+            const div = document.createElement('div'); div.textContent = `[T${gameState.turn}] ${msg}`; div.className = `log-entry-${type}`; dom.logPanel.prepend(div);
+        }
+
+        function startGame() {
+            preloadImages(); dom.mainMenuOverlay.style.display = 'none'; dom.appContainer.style.opacity = 1; dom.appContainer.style.pointerEvents = 'auto'; gameState.turnPhase = 'character_select'; updateUI();
+        }
+
+        function updateUI() {
+            const { player, ai } = gameState;
+            if (gameState.turnPhase === 'main_menu') return;
+            const isPlaying = gameState.turnPhase === 'player_select';
+            dom.cardContainer.parentElement.classList.toggle('hidden', !isPlaying);
+            dom.nextTurnButton.classList.toggle('hidden', !['player_select', 'next_encounter'].includes(gameState.turnPhase));
+            dom.characterSelection.classList.toggle('hidden', gameState.turnPhase !== 'character_select');
+            dom.equipmentSelection.classList.toggle('hidden', gameState.turnPhase !== 'equipment_select');
+
+            if (gameState.turnPhase === 'character_select') { drawCharacterSelection(); dom.gameOverlay.style.display = 'flex'; return; }
+            if (gameState.turnPhase === 'equipment_select') { drawEquipmentSelection(); dom.gameOverlay.style.display = 'flex'; return; }
+
+            dom.gameOverlay.style.display = gameState.isGameOver ? 'flex' : 'none';
+            dom.finalBanner.classList.toggle('hidden', !gameState.isGameOver);
+            dom.finalRestartButton.classList.toggle('hidden', !gameState.isGameOver);
+
+            if(!dom.playerModel.classList.contains('attack-anim') && !dom.playerModel.classList.contains('final-attack-anim')) { dom.playerModel.style.backgroundImage = `url('${baseCharacterStats.sprite}')`; }
+            dom.aiModel.style.backgroundImage = `url('${ai.sprite}')`;
+            dom.aiNameDisplay.textContent = ai.name;
+            dom.encounterDisplay.textContent = `Encuentro ${gameState.currentEncounterIndex + 1}/${ENEMIES.length}`;
+            dom.playerHp.textContent = `${Math.max(0, player.hp)}/${player.maxHp}`; dom.aiHp.textContent = `${Math.max(0, ai.hp)}/${ai.maxHp}`;
+            dom.playerHealthFill.style.width = `${(player.hp/player.maxHp)*100}%`; dom.aiHealthFill.style.width = `${(ai.hp/ai.maxHp)*100}%`;
+            dom.playerEnergy.textContent = player.energy; dom.aiEnergy.textContent = ai.energy;
+
+            if (isPlaying) {
+                dom.nextTurnButton.textContent = player.selectedCard ? 'EJECUTAR GAMBITO' : 'ELIGE UNA CARTA';
+                dom.nextTurnButton.disabled = !player.selectedCard;
+            } else if (gameState.turnPhase === 'next_encounter') {
+                dom.nextTurnButton.textContent = 'SIGUIENTE ENEMIGO'; dom.nextTurnButton.disabled = false;
+            }
+            drawCards();
+        }
+
+        function animateAction(target, action) {
+            const element = target === 'player' ? dom.playerModel : dom.aiModel;
+            const isPlayer = target === 'player';
+            let spriteToShow = isPlayer ? baseCharacterStats.sprite : gameState.ai.sprite;
+            let duration = 500; let animClass = '';
+
+            if (isPlayer) {
+                if (action === 'attack') { spriteToShow = baseCharacterStats.action1; animClass = 'attack-anim'; }
+                else if (action === 'final_attack') { spriteToShow = baseCharacterStats.action2; animClass = 'final-attack-anim'; duration = 1000; }
+            }
+            if (action === 'damage') animClass = 'shake';
+
+            if (isPlayer && (action === 'attack' || action === 'final_attack')) { element.style.backgroundImage = `url('${spriteToShow}')`; }
+            if (animClass) { element.classList.remove('attack-anim', 'final-attack-anim', 'shake'); void element.offsetWidth; element.classList.add(animClass); }
+            
+            setTimeout(() => {
+                element.classList.remove(animClass);
+                if (isPlayer) { element.style.backgroundImage = `url('${baseCharacterStats.sprite}')`; }
+            }, duration);
+        }
+
+        function drawCharacterSelection() {
+            dom.characterOptionsContainer.innerHTML = '';
+            PLAYABLE_CHARACTERS.forEach(char => {
+                const div = document.createElement('div'); div.className = 'equipment-option p-4 text-center';
+                div.innerHTML = `<div class="equipment-sprite" style="background-image: url('${char.sprite}')"></div><p class="text-neon">${char.name}</p><p class="text-xs">${char.description}</p>`;
+                div.onclick = () => { baseCharacterStats = char; gameState.player = { ...gameState.player, name: char.name.split('(')[0].trim(), maxHp: char.maxHp, hp: char.maxHp, maxEnergy: char.maxEnergy, energy: char.maxEnergy, baseDamage: char.baseDamage }; CARDS.find(c=>c.id==='attack').baseDamage = char.baseDamage; gameState.turnPhase = 'equipment_select'; updateUI(); };
+                dom.characterOptionsContainer.appendChild(div);
+            });
+        }
+
+        function drawEquipmentSelection() {
+            dom.equipmentOptionsContainer.innerHTML = '';
+            EQUIPMENT.forEach(eq => {
+                const div = document.createElement('div'); div.className = 'equipment-option p-4 text-center';
+                div.innerHTML = `<div class="equipment-sprite" style="background-image: url('${eq.sprite}')"></div><p class="text-neon">${eq.name}</p><p class="text-xs">${eq.description}</p>`;
+                div.onclick = () => { eq.apply(gameState.player); gameState.player.equipment = eq; dom.gameOverlay.style.display = 'none'; startEncounter(); };
+                dom.equipmentOptionsContainer.appendChild(div);
+            });
+        }
+
+        function startEncounter() {
+            const enemy = ENEMIES[gameState.currentEncounterIndex];
+            gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + 30);
+            gameState.ai = { ...gameState.ai, ...enemy, hp: enemy.maxHp, energy: enemy.energy };
+            gameState.turn = 1; gameState.turnPhase = 'player_select';
+            logAction(`VS ${enemy.name}`, false, 'system'); startTurn();
+        }
+
+        function startTurn() {
+            gameState.turnPhase = 'player_select'; gameState.player.energy = gameState.player.maxEnergy; gameState.ai.energy = gameState.ai.maxEnergy; gameState.player.block = 0; gameState.ai.block = 0;
+            const validCards = CARDS.filter(c => c.cost <= gameState.ai.energy);
+            if(validCards.length) { const attack = validCards.find(c=>c.id==='attack'); gameState.ai.selectedCard = attack ? 'attack' : 'recharge'; } else gameState.ai.selectedCard = 'recharge';
+            updateUI();
+        }
+
+        function drawCards() {
+            dom.cardContainer.innerHTML = '';
+            if(gameState.turnPhase !== 'player_select') return;
+            CARDS.forEach(card => {
+                const div = document.createElement('div'); div.className = 'card';
+                if(gameState.player.energy < card.cost) div.style.opacity = 0.5;
+                else div.onclick = () => { gameState.player.selectedCard = card.id; updateUI(); };
+                if(gameState.player.selectedCard === card.id) div.style.borderColor = 'var(--damage-color)';
+                div.innerHTML = `<div class="flex justify-between"><span class="card-title">${card.name}</span><span class="card-cost">${card.cost}E</span></div><div class="card-effect">${card.description}</div>`;
+                dom.cardContainer.appendChild(div);
+            });
+        }
+
+        dom.nextTurnButton.onclick = () => {
+            if(gameState.turnPhase === 'next_encounter') { startEncounter(); return; }
+            gameState.turnPhase = 'resolving'; updateUI();
+            const pCard = CARDS.find(c=>c.id === gameState.player.selectedCard);
+            const aCard = CARDS.find(c=>c.id === gameState.ai.selectedCard);
+            if(pCard) { gameState.player.energy -= pCard.cost; pCard.effect(gameState.player, gameState.ai); }
+            setTimeout(() => {
+                if(gameState.ai.hp <= 0) { winEncounter(); return; }
+                if(aCard) { gameState.ai.energy -= aCard.cost; aCard.effect(gameState.ai, gameState.player); }
+                if(gameState.player.hp <= 0) { endGame(false); return; }
+                gameState.player.selectedCard = null; gameState.turn++; startTurn();
+            }, 1000);
+        };
+
+        function winEncounter() {
+            gameState.currentEncounterIndex++;
+            if(gameState.currentEncounterIndex >= ENEMIES.length) endGame(true); else { gameState.turnPhase = 'next_encounter'; updateUI(); }
+        }
+
+        function endGame(win) {
+            gameState.isGameOver = true; gameState.turnPhase = 'finished';
+            dom.finalBanner.style.backgroundImage = win ? "url('Banner_Victoria.jpg')" : "url('Banner_Derrota.jpg')";
+            updateUI();
+        }
+
+        dom.finalRestartButton.onclick = () => window.location.reload();
+        dom.startGameButton.onclick = startGame;
+        
+        // Lógica básica de botones
+        dom.pauseButton.onclick = () => alert("Juego Pausado");
+        document.getElementById('settings-button').onclick = () => alert("Configuración");
+        document.getElementById('exit-button').onclick = () => { if(confirm('¿Salir?')) location.reload(); };
+
+    </script>
 </body>
 </html>
