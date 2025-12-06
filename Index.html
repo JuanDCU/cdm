@@ -19,6 +19,12 @@
             --energy-color: #00aaff;
             --damage-color: #ff4500;
             --heal-color: #00ff88;
+            --burn-color: #ff6600;
+            --fury-color: #ffd700;
+            --crit-color: #ffff00;
+            --miss-color: #888888;
+            --synergy-color: #00ffff;
+            --relic-color: #d400ff;
         }
 
         body {
@@ -32,6 +38,8 @@
             margin: 0;
             padding: 10px;
             text-shadow: 2px 2px 0px #000000; 
+            user-select: none;
+            overflow: hidden;
         }
 
         #app-container {
@@ -46,33 +54,91 @@
             pointer-events: none;
             transition: opacity 0.5s ease;
             position: relative; 
+            overflow: hidden; 
+            z-index: 10;
         }
 
-        .text-neon {
-            color: var(--ui-accent);
-            text-shadow: 2px 2px 0px #000, 0 0 5px var(--damage-color);
+        .text-neon { color: var(--ui-accent); text-shadow: 2px 2px 0px #000, 0 0 5px var(--damage-color); }
+
+        /* --- MAPA DE PROGRESO --- */
+        #dungeon-map {
+            display: flex; justify-content: center; gap: 15px; margin-bottom: 10px; font-size: 1.2rem;
         }
+        .map-node { opacity: 0.3; filter: grayscale(1); transition: all 0.3s; }
+        .map-node.active { opacity: 1; filter: grayscale(0); transform: scale(1.2); text-shadow: 0 0 10px #fff; }
+        .map-node.completed { opacity: 0.5; color: #00ff00; }
+
+        /* --- RELIQUIAS (HUD) --- */
+        #relics-container {
+            position: absolute; top: 15px; left: 130px; display: flex; gap: 5px; z-index: 60;
+        }
+        .relic-icon {
+            width: 32px; height: 32px; background: #222; border: 2px solid var(--relic-color);
+            display: flex; align-items: center; justify-content: center; border-radius: 50%;
+            font-size: 16px; cursor: help; transition: transform 0.2s;
+        }
+        .relic-icon:hover { transform: scale(1.2); box-shadow: 0 0 10px var(--relic-color); }
+
+        /* --- BURBUJAS DE DIÁLOGO --- */
+        .speech-bubble {
+            position: absolute; top: -50px; right: -40px;
+            background: #fff; color: #000; border: 3px solid #000;
+            padding: 10px; border-radius: 8px; font-size: 0.6rem; z-index: 200;
+            text-shadow: none; box-shadow: 4px 4px 0 #000;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            max-width: 150px; text-align: center; pointer-events: none;
+        }
+        .speech-bubble::after { content: ''; position: absolute; bottom: -10px; left: 20px; border-width: 10px 10px 0; border-style: solid; border-color: #000 transparent; display: block; width: 0; }
+        .speech-bubble::before { content: ''; position: absolute; bottom: -6px; left: 23px; border-width: 8px 8px 0; border-style: solid; border-color: #fff transparent; display: block; width: 0; z-index: 1; }
+        @keyframes popIn { 0% { transform: scale(0) translateY(20px); opacity: 0; } 100% { transform: scale(1) translateY(0); opacity: 1; } }
+
+        /* --- EFECTOS VISUALES --- */
+        .burning-effect { filter: sepia(1) saturate(5) hue-rotate(-50deg) drop-shadow(0 0 10px var(--burn-color)) !important; transition: filter 0.5s ease; }
+        .power-up-anim { animation: powerUpPulse 0.5s ease-in-out; filter: brightness(1.5) drop-shadow(0 0 10px #ff00ff); }
+        @keyframes powerUpPulse { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1.05); } }
+
+        /* --- INTENCION ENEMIGO --- */
+        #enemy-intent {
+            position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8); border: 2px solid #fff;
+            padding: 5px 10px; border-radius: 20px;
+            display: flex; align-items: center; gap: 5px;
+            font-size: 0.8rem; white-space: nowrap; z-index: 50;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            transition: all 0.3s ease; opacity: 0;
+        }
+        #enemy-intent.visible { opacity: 1; top: -60px; }
+        .intent-icon { font-size: 1.2rem; }
+
+        /* --- NIEBLA AMBIENTAL --- */
+        .fog-container {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 150px;
+            background: url('https://raw.githubusercontent.com/danielstuart14/CSS_FOG_ANIMATION/master/fog1.png') repeat-x;
+            background-size: 200% auto;
+            opacity: 0.3; z-index: 15; pointer-events: none;
+            animation: fogMove 60s linear infinite;
+        }
+        @keyframes fogMove { 0% { background-position: 0 0; } 100% { background-position: -200% 0; } }
+
+        /* --- LIMIT BREAK --- */
+        .fury-bar-container { border: 2px solid #fff; background-color: #443300; height: 8px; margin-top: 6px; position: relative; }
+        .fury-bar-fill { height: 100%; background: linear-gradient(90deg, #ff8800, #ffd700); width: 0%; transition: width 0.3s ease-out; box-shadow: 0 0 10px #ffd700; }
+        #limit-break-btn {
+            position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%) scale(0);
+            background: linear-gradient(45deg, #ff0000, #ffaa00); border: 4px solid #fff;
+            color: white; padding: 15px 30px; font-family: 'Press Start 2P'; font-size: 1.2rem;
+            cursor: pointer; z-index: 160; box-shadow: 0 0 20px #ff4500;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex; align-items: center; justify-content: center;
+        }
+        #limit-break-btn.visible { transform: translateX(-50%) scale(1); animation: pulse-limit 0.8s infinite alternate; }
+        @keyframes pulse-limit { 0% { transform: translateX(-50%) scale(1); box-shadow: 0 0 20px #ff4500; } 100% { transform: translateX(-50%) scale(1.1); box-shadow: 0 0 40px #ffd700; } }
+        #ult-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); z-index: 155; display: none; pointer-events: none; }
+        .ult-active { display: block !important; animation: fadeIn 0.2s; }
 
         /* --- BOTONES SUPERIORES --- */
-        .top-btn {
-            position: absolute;
-            top: 15px;
-            width: 45px;
-            height: 45px;
-            background-color: transparent;
-            background-size: cover;
-            background-repeat: no-repeat;
-            border: none;
-            cursor: pointer;
-            z-index: 50;
-            transition: transform 0.1s;
-            filter: drop-shadow(2px 2px 0px #000); 
-        }
-        .top-btn:hover {
-            transform: scale(1.1);
-            filter: brightness(1.2) drop-shadow(2px 2px 0px #000);
-        }
-
+        .top-btn { position: absolute; top: 15px; width: 45px; height: 45px; background-color: transparent; background-size: cover; background-repeat: no-repeat; border: none; cursor: pointer; z-index: 50; transition: transform 0.1s; filter: drop-shadow(2px 2px 0px #000); }
+        .top-btn:hover { transform: scale(1.1); filter: brightness(1.2) drop-shadow(2px 2px 0px #000); }
         #pause-button { left: 15px; background-image: url('Pausa.png'); }
         #settings-button { left: 70px; background-image: url('Menu.png'); }
         #exit-button { right: 15px; background-image: url('Salir.png'); }
@@ -87,86 +153,73 @@
         .menu-button { font-family: 'Press Start 2P', cursive; background-color: var(--damage-color); color: var(--bg-dark); padding: 12px 25px; margin: 10px 0; border: 4px solid var(--ui-accent); cursor: pointer; box-shadow: 0 6px #000; transition: background-color 0.1s; font-size: 1rem; width: 250px; text-align: center; display: flex; justify-content: center; align-items: center; text-shadow: none; }
         .menu-button:hover { background-color: #ff6666; transform: translateY(-2px); box-shadow: 0 8px #000; }
         #menu-button-group { margin-top: 0; margin-bottom: 15vh; }
+        #highscore-display { margin-top: 10px; color: var(--fury-color); font-size: 0.8rem; text-shadow: 2px 2px 0 #000; }
 
-        /* --- BARRAS DE HP --- */
         .health-bar-container { border: 2px solid var(--text-color); background-color: #000000; height: 12px; margin-top: 4px; }
         .health-bar-fill { height: 100%; background-color: var(--ui-accent); transition: width 0.5s ease-out; }
 
         /* --- CAMPO DE BATALLA --- */
-        #battle-field { background-image: url(Escenario1.png); background-size: cover; background-position: center; border: 3px solid #1a1c22; height: 300px; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; padding: 10px 20px; overflow: hidden; position: relative; }
+        #battle-field { background-image: url(Escenario1.png); background-size: cover; background-position: center; border: 3px solid #1a1c22; height: 300px; display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; padding: 10px 20px; overflow: hidden; position: relative; z-index: 20; }
+        /* Animaciones Idle */
+        @keyframes breathePlayer { 0% { transform: scaleY(1); } 50% { transform: scaleY(1.02) translateY(-2px); } 100% { transform: scaleY(1); } }
+        @keyframes breatheEnemy { 0% { transform: scaleY(1); } 50% { transform: scaleY(1.03) translateY(-3px); } 100% { transform: scaleY(1); } }
+        .idle-player { animation: breathePlayer 2.5s infinite ease-in-out; transform-origin: bottom center; }
+        .idle-enemy { animation: breatheEnemy 3.2s infinite ease-in-out; transform-origin: bottom center; }
         .character-model { width: 200px; height: 200px; display: inline-block; transition: transform 0.1s, filter 0.1s; background-size: contain; background-repeat: no-repeat; background-position: bottom center; }
 
-        /* --- ANIMACIONES --- */
+        /* --- ANIMACIONES & PARTICULAS --- */
+        .floating-text { position: absolute; font-weight: bold; font-size: 1.5rem; pointer-events: none; animation: floatUp 1s ease-out forwards; text-shadow: 2px 2px 0 #000; z-index: 150; }
+        .floating-text.crit { font-size: 2.2rem; color: var(--crit-color); text-shadow: 4px 4px 0 #ff0000; z-index: 160; animation: critPop 0.5s ease-out forwards; }
+        .floating-text.miss { color: var(--miss-color); font-size: 1.2rem; }
+        .particle { position: absolute; width: 6px; height: 6px; pointer-events: none; z-index: 140; box-shadow: 1px 1px 0 #000; }
+        .ember { position: absolute; width: 4px; height: 4px; background-color: #ff4500; border-radius: 50%; opacity: 0.8; z-index: 5; pointer-events: none; box-shadow: 0 0 5px #ffaa00; }
+
+        @keyframes floatUp { 0% { transform: translateY(0) scale(1); opacity: 1; } 50% { transform: translateY(-30px) scale(1.2); opacity: 1; } 100% { transform: translateY(-60px) scale(1); opacity: 0; } }
+        @keyframes critPop { 0% { transform: translateY(0) scale(0.5); } 50% { transform: translateY(-20px) scale(1.5); } 100% { transform: translateY(-40px) scale(1); opacity: 0; } }
+        .screen-flash { position: absolute; top:0; left:0; width:100%; height:100%; background-color: white; opacity: 0; pointer-events: none; z-index: 10; }
+        .flash-anim { animation: flash 0.2s ease-in-out; }
+        @keyframes flash { 0% { opacity: 0.3; } 100% { opacity: 0; } }
         .shake { animation: shake-animation 0.2s 3 ease-in-out; }
         @keyframes shake-animation { 0% { transform: translateX(0) } 25% { transform: translateX(-5px) } 75% { transform: translateX(5px) } 100% { transform: translateX(0) } }
+        .dodge-anim { animation: dodge-move 0.4s ease-out; }
+        @keyframes dodge-move { 0% { transform: translateX(0); } 30% { transform: translateX(-30px) skewX(-10deg); } 100% { transform: translateX(0); } }
         .attack-effect { animation: attack-duration 0.3s ease-in-out; }
         @keyframes attack-duration { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
         .final-attack-effect { animation: final-attack-duration 1.0s ease-in-out; z-index: 20; position: relative; transform-origin: bottom center; }
         @keyframes final-attack-duration { 0% { transform: scale(1); filter: brightness(1); } 10% { transform: scale(0.9); filter: brightness(0.8); } 40% { transform: scale(1.8); filter: brightness(1.5) contrast(1.3); } 60% { transform: scale(1.8); filter: brightness(1.5) contrast(1.3); } 100% { transform: scale(1); filter: brightness(1); } }
 
-        /* --- CARTAS (TEXTO MÁS GRANDE) --- */
-        .card {
-            background-image: url('Marco_Carta.png'); 
-            background-size: 100% 100%;
-            background-color: transparent; 
-            border: none; border-radius: 0px;
-            padding: 22px 18px 18px 18px; 
-            cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
-            height: 100%; display: flex; flex-direction: column; justify-content: space-between;
-            box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
-        }
+        /* --- CARTAS --- */
+        .card { background-image: url('Marco_Carta.png'); background-size: 100% 100%; background-color: transparent; border: none; border-radius: 0px; padding: 22px 18px 18px 18px; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; height: 100%; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 4px 4px 0px rgba(0,0,0,0.5); }
         .card:hover { transform: translateY(-4px); box-shadow: 0 0 15px var(--damage-color); }
-        
-        /* MODIFICADO: TEXTO MÁS GRANDE */
-        .card-title { 
-            font-size: 0.9rem; /* AUMENTADO */
-            color: var(--ui-accent); 
-            text-shadow: 3px 3px 0px #000; 
-            font-weight: 900;
-            margin-top: 2px;
-            text-align: left;
-        }
-        .card-cost { 
-            color: var(--energy-color); 
-            font-size: 0.9rem; /* AUMENTADO */
-            font-weight: 900;
-            text-shadow: 3px 3px 0px #000;
-            margin-top: 2px;
-            text-align: right;
-        }
-        .card-effect { 
-            font-size: 0.75rem; /* AUMENTADO */
-            margin-top: 10px; 
-            margin-bottom: 10px;
-            color: #ffffff; 
-            text-shadow: 2px 2px 0px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; 
-            text-align: center;
-            line-height: 1.6;
-            font-weight: bold;
-        }
+        .card-title { font-size: 0.9rem; color: var(--ui-accent); text-shadow: 3px 3px 0px #000; font-weight: 900; margin-top: 2px; text-align: left; }
+        .card-cost { color: var(--energy-color); font-size: 0.9rem; font-weight: 900; text-shadow: 3px 3px 0px #000; margin-top: 2px; text-align: right; }
+        .card-effect { font-size: 0.75rem; margin-top: 10px; margin-bottom: 10px; color: #ffffff; text-shadow: 2px 2px 0px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; text-align: center; line-height: 1.6; font-weight: bold; }
+        .card.synergy-active { box-shadow: 0 0 15px var(--synergy-color); border: 1px solid var(--synergy-color); animation: synergyPulse 1.5s infinite; }
+        @keyframes synergyPulse { 0% { box-shadow: 0 0 10px var(--synergy-color); } 50% { box-shadow: 0 0 25px var(--synergy-color); } 100% { box-shadow: 0 0 10px var(--synergy-color); } }
+        .card.rare .card-title { color: #cc00ff; text-shadow: 0 0 5px #cc00ff; }
 
-        /* Registro de eventos */
+        /* Registro */
         #log-panel { background-color: rgba(0, 0, 0, 0.85); border: 2px solid var(--text-color); height: 120px; overflow-y: auto; padding: 8px; font-size: 0.75rem; line-height: 1.5; color: var(--text-color); }
-        .log-entry-player { color: var(--ui-accent); } .log-entry-ai { color: var(--damage-color); } .log-entry-heal { color: var(--heal-color); } .log-entry-system { color: #8888ff; }
+        .log-entry-player { color: var(--ui-accent); } .log-entry-ai { color: var(--damage-color); } .log-entry-heal { color: var(--heal-color); } .log-entry-system { color: #8888ff; } .log-entry-burn { color: var(--burn-color); } .log-entry-danger { color: #ff00ff; font-weight: bold; }
 
         /* --- OVERLAYS --- */
         #game-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.95); display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center; z-index: 100; }
-        #overlay-content { border: 4px solid var(--ui-accent); background-color: var(--bg-dark); padding: 20px; }
-        #final-banner { width: 100%; max-width: 450px; height: 250px; background-size: contain; background-repeat: no-repeat; background-position: center; margin-bottom: 20px; }
-
+        #overlay-content { border: 4px solid var(--ui-accent); background-color: var(--bg-dark); padding: 20px; width: 90%; max-width: 800px; }
+        #final-banner { width: 100%; height: 350px; background-size: contain; background-repeat: no-repeat; background-position: center; margin: 0 auto 20px auto; display: block; }
         .restart-button { background-color: var(--damage-color); color: var(--bg-dark); padding: 10px 20px; border: 2px solid var(--ui-accent); cursor: pointer; box-shadow: 0 4px #000; transition: background-color 0.1s; }
         .restart-button:hover { background-color: #ff6666; }
-        
         #final-restart-button { background-color: transparent; color: transparent; padding: 0; width: 64px; height: 64px; border: none; box-shadow: none; background-image: url('Salir.png'); background-size: cover; background-repeat: no-repeat; margin-top: 20px; cursor: pointer; }
         #final-restart-button:hover { transform: scale(1.1); }
 
-        /* Selección */
-        .equipment-option { background-color: #2b2d38; border: 4px solid var(--text-color); padding: 15px; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; box-shadow: 6px 6px 0px #111; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-around; }
-        .equipment-option:hover { transform: translateY(-2px); box-shadow: 8px 8px 0px var(--ui-accent); }
+        /* Selección y Recompensas */
+        .equipment-option, .reward-card { background-color: #2b2d38; border: 4px solid var(--text-color); padding: 15px; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s; box-shadow: 6px 6px 0px #111; display: flex; flex-direction: column; align-items: center; min-height: 200px; justify-content: space-around; }
+        .equipment-option:hover, .reward-card:hover { transform: translateY(-2px); box-shadow: 8px 8px 0px var(--ui-accent); }
         .equipment-sprite { width: 80px; height: 80px; margin-bottom: 10px; background-size: contain; background-repeat: no-repeat; background-position: center; border: 1px solid var(--ui-accent); background-color: #111111; }
+        .reward-icon { font-size: 3rem; margin-bottom: 10px; }
 
         @media (max-width: 600px) {
             .card { padding: 12px; } .card-title, .card-cost { font-size: 0.7rem; } .card-effect { font-size: 0.6rem; } #log-panel { height: 100px; font-size: 0.6rem; } .character-model { width: 80px; height: 80px; }
+            #final-banner { height: 200px; } 
         }
     </style>
 </head>
@@ -177,33 +230,40 @@
             <div id="menu-button-group"> 
                  <button id="start-game-button" class="menu-button">EMPEZAR <span class="ml-2">🔥</span></button>
                 <button id="credits-button" class="menu-button">CRÉDITOS</button>
+                <p id="highscore-display">MEJOR RACHA: 0</p>
             </div>
         </div>
     </div>
 
     <div id="app-container" class="relative">
+        <div id="screen-flash" class="screen-flash"></div>
+        <div id="ult-overlay"></div>
         
         <button id="pause-button" class="top-btn" title="Pausa"></button>
         <button id="settings-button" class="top-btn" title="Ajustes"></button>
         <button id="exit-button" class="top-btn" title="Salir"></button>
 
-        <h1 class="text-2xl text-center mb-2 text-neon" style="margin-top: 30px;">IGNIS: LA PRUEBA DEL FUEGO</h1>
-        <p class="text-center text-xs mb-4" id="encounter-display">Encuentro 1/3</p>
+        <div id="relics-container"></div>
 
-        <div id="battle-field">
-            <div id="player-model-container" class="flex flex-col items-center">
-                <span id="player-model" class="character-model"></span>
-                <p class="text-xs mt-1 text-neon">IGNIS</p>
+        <div id="limit-break-btn">
+            ¡LIMIT BREAK!
+        </div>
+
+        <h1 class="text-2xl text-center mb-2 text-neon" style="margin-top: 30px;">IGNIS: LA PRUEBA DEL FUEGO</h1>
+        <div id="dungeon-map"></div> <div id="battle-field">
+            <div class="fog-container"></div> <div id="player-model-container" class="flex flex-col items-center relative">
+                <span id="player-model" class="character-model idle-player"></span>
+                <p class="text-xs mt-1 text-neon">IGNIS <span id="player-burn-indicator" class="text-red-500 hidden">🔥</span></p>
             </div>
             
-            <div id="ai-model-container" class="flex flex-col items-center">
-                <span id="ai-model" class="character-model"></span> 
-                <p class="text-xs mt-1" id="ai-name-display" style="color: var(--damage-color);">ESPECTRO IA</p>
+            <div id="ai-model-container" class="flex flex-col items-center relative">
+                <div id="enemy-intent"></div> <span id="ai-model" class="character-model idle-enemy"></span> 
+                <p class="text-xs mt-1" id="ai-name-display" style="color: var(--damage-color);">ESPECTRO IA <span id="ai-burn-indicator" class="text-red-500 hidden">🔥</span></p>
             </div>
         </div>
 
         <div id="status-panels" class="flex justify-between mb-2 text-sm">
-            <div class="w-1/2 p-2 mr-2 border-2 border-green-500">
+            <div class="w-1/2 p-2 mr-2 border-2 border-green-500 relative z-20 bg-black bg-opacity-50">
                 <p class="text-lg text-neon flex justify-between items-center">
                     <span>IGNIS <img src="Icono_Escudo.png" class="shield-icon" title="Defensa"></span> 
                     <span id="player-equipment" class="text-xs text-red-300 font-normal"></span>
@@ -215,6 +275,12 @@
                 </div>
                 <div class="health-bar-container"><div id="player-health-fill" class="health-bar-fill" style="width: 100%;"></div></div>
                 
+                <div class="flex items-center mt-2" style="color: var(--fury-color);">
+                    <span class="mr-2 text-xs">FURIA:</span>
+                    <span id="player-fury">0</span>%
+                </div>
+                <div class="fury-bar-container"><div id="player-fury-fill" class="fury-bar-fill" style="width: 0%;"></div></div>
+
                 <div class="flex items-center mt-2" style="color: var(--energy-color);">
                     <img src="Icono_Energia.png" class="stat-icon">
                     <span class="mr-2">ENERGÍA:</span>
@@ -222,7 +288,7 @@
                 </div>
             </div>
             
-            <div class="w-1/2 p-2 ml-2 border-2 border-red-500">
+            <div class="w-1/2 p-2 ml-2 border-2 border-red-500 relative z-20 bg-black bg-opacity-50">
                 <p class="text-lg flex justify-between items-center" id="ai-status-name" style="color: var(--damage-color);">
                     <span>ESPECTRO IA <img src="Icono_Escudo.png" class="shield-icon" title="Defensa"></span>
                 </p>
@@ -269,13 +335,71 @@
                     <div id="equipment-options-container" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
                 </div>
 
+                <div id="reward-selection" class="text-center hidden">
+                    <h2 class="text-2xl mb-6 text-neon">¡VICTORIA! ELIGE TU RECOMPENSA</h2>
+                    <div id="reward-options-container" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+                </div>
+
                 <button id="final-restart-button" class="mt-6 hidden" title="Reiniciar Juego"></button>
             </div>
         </div>
     </div>
 
     <script>
-        // --- DATOS DEL JUEGO ---
+        // --- MOTOR DE AUDIO ---
+        const AudioEngine = {
+            ctx: null,
+            init: function() {
+                window.AudioContext = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AudioContext();
+            },
+            playTone: function(freq, type, duration, vol = 0.1) {
+                if(!this.ctx) return;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = type; osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + duration);
+            },
+            playNoise: function(duration, vol=0.1) {
+                if(!this.ctx) return;
+                const bufferSize = this.ctx.sampleRate * duration;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer; const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(vol, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + duration);
+                noise.connect(gain); gain.connect(this.ctx.destination);
+                noise.start();
+            },
+            hit: function() { this.playNoise(0.2, 0.3); this.playTone(100, 'sawtooth', 0.1, 0.2); },
+            crit: function() { this.playTone(600, 'square', 0.1, 0.3); this.playNoise(0.3, 0.4); },
+            miss: function() { this.playNoise(0.1, 0.1); this.playTone(800, 'sine', 0.1, 0.05); }, 
+            heal: function() { 
+                if(!this.ctx) return;
+                const osc = this.ctx.createOscillator(); const gain = this.ctx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(600, this.ctx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime); gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.3);
+            },
+            block: function() { this.playTone(150, 'square', 0.1, 0.1); },
+            burn: function() { this.playNoise(0.5, 0.05); },
+            limitReady: function() { this.playTone(880, 'sine', 0.5, 0.2); setTimeout(()=>this.playTone(1100, 'sine', 0.5, 0.2), 100); },
+            limitCast: function() { this.playNoise(1.5, 0.5); this.playTone(50, 'sawtooth', 2.0, 0.5); },
+            powerUp: function() { this.playTone(200, 'square', 0.1, 0.1); setTimeout(()=>this.playTone(300, 'square', 0.1, 0.1), 100); setTimeout(()=>this.playTone(400, 'square', 0.3, 0.1), 200); },
+            relic: function() { this.playTone(1200, 'sine', 0.1, 0.2); setTimeout(()=>this.playTone(1800, 'sine', 0.2, 0.2), 100); },
+            win: function() { [440, 554, 659, 880].forEach((f, i) => setTimeout(() => this.playTone(f, 'square', 0.2, 0.1), i*150)); },
+            lose: function() { [300, 280, 260, 200].forEach((f, i) => setTimeout(() => this.playTone(f, 'sawtooth', 0.4, 0.1), i*300)); },
+            click: function() { this.playTone(800, 'sine', 0.05, 0.05); },
+            speech: function() { this.playTone(400, 'square', 0.05, 0.05); } 
+        };
+
+        // --- DATOS ---
         const PLAYABLE_CHARACTERS = [
             { id:'ignis', name:'IGNIS (Fuego)', sprite:'Ignis Vista en espera.png', action1:'Ignis Vista accion 1.png', action2:'Ignis Vista Accion 2.png', maxHp:100, baseDamage:10, maxEnergy:3, description: "Guerrero balanceado." },
             { id:'orion', name:'ORION (Tanque)', sprite:'orion Vista en espera.png', action1:'orion Vista accion 1.png', action2:'orion Vista accion 2.png', maxHp:120, baseDamage:8, maxEnergy:3, description: "Resistente." },
@@ -285,86 +409,162 @@
         function preloadImages() {
             const images = [];
             PLAYABLE_CHARACTERS.forEach(c => { images.push(c.sprite, c.action1, c.action2); });
-            images.push('Escenario1.png', 'Menu.png', 'Pausa.png', 'Salir.png', 'Banner_Victoria.jpg', 'Banner_Derrota.jpg', 'Marco_Carta.jpg', 'Icono_HP.jpg', 'Icono_Energia.jpg', 'Icono_Escudo.jpg');
+            images.push('Escenario1.png', 'Menu.png', 'Pausa.png', 'Salir.png', 'Banner_Victoria.png', 'Banner_Derrota.png', 'Marco_Carta.jpg', 'Icono_HP.jpg', 'Icono_Energia.jpg', 'Icono_Escudo.jpg');
             images.forEach(src => { const img = new Image(); img.src = src; });
-            console.log("Imágenes precargadas.");
         }
 
-        const CARDS = [
-            { id: 'attack', name: 'ATACAR', cost: 2, baseDamage: 10, effect: (s, t) => { let dmg = s.baseDamage||10; if(t.block>0){let b=Math.min(dmg,t.block);dmg-=b;t.block-=b;logAction(`${t.name} bloquea ${b}.`,false,'system');} if(dmg>0){t.hp-=dmg;logAction(`${s.name} ataca: ${dmg} daño.`,true,s.isPlayer?'player':'ai');animateAction(s.isPlayer?'player':'ai','attack');animateAction(t.isPlayer?'player':'ai','damage');}else{logAction(`Ataque bloqueado.`,true,'system');} }, description: 'Daño físico directo.' },
-            { id: 'defend', name: 'DEFENDER', cost: 1, effect: (s, t) => { s.block+=15; logAction(`${s.name} sube guardia.`,true,'player'); animateAction(s.isPlayer?'player':'ai','defend'); }, description: '+15 Bloqueo.' },
-            { id: 'gambit', name: 'GAMBITO', cost: 3, effect: (s, t) => { let dmg=20; s.hp-=5; if(t.block>0){let b=Math.min(dmg,t.block);dmg-=b;t.block-=b;} if(dmg>0)t.hp-=dmg; logAction(`${s.name} sacrifica vida y golpea.`,true,'player'); animateAction(s.isPlayer?'player':'ai','attack'); animateAction(t.isPlayer?'player':'ai','damage'); }, description: '20 Daño, -5 HP.' },
-            { id: 'final_attack', name: 'ATAQUE FINAL', cost: 3, effect: (s, t) => { let dmg=50; if(t.block>0){let b=Math.min(dmg,t.block);dmg-=b;t.block-=b;} if(dmg>0)t.hp-=dmg; logAction(`¡${s.name} USA ATAQUE FINAL!`,true,'player'); animateAction(s.isPlayer?'player':'ai','final_attack'); animateAction(t.isPlayer?'player':'ai','damage'); }, description: 'Golpe definitivo (50 daño).' },
-            { id: 'recharge', name: 'RECARGAR', cost: 0, effect: (s) => { s.energy=Math.min(s.maxEnergy,s.energy+2); logAction(`${s.name} recarga energía.`,true,'player'); }, description: '+2 Energía.' },
-            { id: 'meditate', name: 'MEDITAR', cost: 1, effect: (s) => { s.hp=Math.min(s.maxHp,s.hp+15); logAction(`${s.name} se cura.`,true,'heal'); }, description: '+15 HP.' }
+        // --- SISTEMA DE RELIQUIAS (Objetos Pasivos) ---
+        const RELICS = [
+            { id: 'vamp_skull', name: 'Cráneo Vampiro', desc: 'Cura 10 HP al matar.', icon: '💀', type: 'on_kill', effect: (p) => { p.hp = Math.min(p.maxHp, p.hp + 10); spawnFloatingText(true, "+10 HP", "#00ff00"); AudioEngine.heal(); } },
+            { id: 'thorns', name: 'Espinas', desc: 'Devuelve 3 daño al ser golpeado.', icon: '🌵', type: 'on_hit', effect: (p, enemy) => { enemy.hp -= 3; spawnFloatingText(false, "-3", "red"); AudioEngine.hit(); } },
+            { id: 'battery', name: 'Batería Arcana', desc: '+1 Energía Turno 1.', icon: '🔋', type: 'combat_start', effect: (p) => { p.energy += 1; spawnFloatingText(true, "+1 ENERGIA", "yellow"); } },
+            { id: 'lava_amulet', name: 'Amuleto Lava', desc: 'Aplica 2 quemadura al inicio.', icon: '🔥', type: 'combat_start', effect: (p, enemy) => { enemy.burn += 2; spawnFloatingText(false, "+2 QUEMAR", "orange"); } }
         ];
 
-        const ENEMIES = [
-            { name: "ESPECTRO IA", sprite: "Espectro_IA.png.png", maxHp: 80, energy: 3, maxEnergy:3, strategy: 'basic' },
-            { name: "GUERRERO ORCO", sprite: "Guerrero_Orco.png", maxHp: 120, energy: 3, maxEnergy:3, strategy: 'aggressive' },
-            { name: "MAGO SOMBRÍO", sprite: "Mago_Sombrio.png", maxHp: 90, energy: 4, maxEnergy:4, strategy: 'energy_focus' }
-        ];
+        // --- EFECTOS VISUALES ---
+        function spawnParticles(targetIsPlayer, type) {
+            const container = document.getElementById('app-container');
+            const targetEl = targetIsPlayer ? document.getElementById('player-model') : document.getElementById('ai-model');
+            const rect = targetEl.getBoundingClientRect();
+            const appRect = container.getBoundingClientRect();
+            const centerX = rect.left - appRect.left + rect.width / 2;
+            const centerY = rect.top - appRect.top + rect.height / 2;
 
-        const EQUIPMENT = [
-            { id: 'guante', name: 'Guante Poder', description: '+5 Daño', sprite: 'Guante.png', apply: (p) => p.baseDamage += 5 },
-            { id: 'cristal', name: 'Cristal Energía', description: '+1 Energía Max', sprite: 'Cristal.png', apply: (p) => { p.maxEnergy++; p.energy++; } },
-            { id: 'amuleto', name: 'Amuleto Vida', description: '+20 HP', sprite: 'Corazon.png', apply: (p) => { p.maxHp+=20; p.hp+=20; } }
-        ];
+            let count = 10; let colors = ['#ff0000']; let speed = 100;
+            if (type === 'heal') { colors = ['#00ff88', '#ffffff']; count = 15; speed = 50; }
+            if (type === 'block') { colors = ['#00aaff', '#ffffff']; count = 8; }
+            if (type === 'energy') { colors = ['#ffff00', '#ffaa00']; count = 8; }
+            if (type === 'explosion') { colors = ['#ff4500', '#ff0000', '#ffff00']; count = 30; speed = 150; }
+            if (type === 'fire') { colors = ['#ffcc00', '#ff4500', '#ff0000']; count = 12; speed = 80; } 
 
-        let gameState = { player: { name: 'IGNIS', maxHp: 100, hp: 100, energy: 3, maxEnergy: 3, block: 0, selectedCard: null, isPlayer: true, baseDamage: 10 }, ai: { name: '', maxHp: 0, hp: 0, energy: 0, maxEnergy: 0, block: 0, isPlayer: false, sprite: '' }, currentEncounterIndex: 0, turn: 1, turnPhase: 'main_menu', isGameOver: false };
-        let baseCharacterStats = PLAYABLE_CHARACTERS[0]; 
-
-        const dom = {
-            playerHp: document.getElementById('player-hp'), playerEnergy: document.getElementById('player-energy'), playerHealthFill: document.getElementById('player-health-fill'), playerEquipment: document.getElementById('player-equipment'),
-            aiHp: document.getElementById('ai-hp'), aiEnergy: document.getElementById('ai-energy'), aiHealthFill: document.getElementById('ai-health-fill'),
-            cardContainer: document.getElementById('card-container'), logPanel: document.getElementById('log-panel'), nextTurnButton: document.getElementById('next-turn-button'),
-            gameOverlay: document.getElementById('game-overlay'), finalBanner: document.getElementById('final-banner'), finalRestartButton: document.getElementById('final-restart-button'),
-            playerModel: document.getElementById('player-model'), aiModel: document.getElementById('ai-model'), aiNameDisplay: document.getElementById('ai-name-display'), encounterDisplay: document.getElementById('encounter-display'),
-            characterSelection: document.getElementById('character-selection'), characterOptionsContainer: document.getElementById('character-options-container'),
-            equipmentSelection: document.getElementById('equipment-selection'), equipmentOptionsContainer: document.getElementById('equipment-options-container'),
-            mainMenuOverlay: document.getElementById('main-menu-overlay'), appContainer: document.getElementById('app-container'), startGameButton: document.getElementById('start-game-button'), creditsButton: document.getElementById('credits-button'), 
-            pauseButton: document.getElementById('pause-button'), settingsButton: document.getElementById('settings-button'), exitButton: document.getElementById('exit-button')
-        };
-
-        function logAction(msg, isPlayer, type) {
-            const div = document.createElement('div'); div.textContent = `[T${gameState.turn}] ${msg}`; div.className = `log-entry-${type}`; dom.logPanel.prepend(div);
-        }
-
-        function startGame() {
-            preloadImages(); dom.mainMenuOverlay.style.display = 'none'; dom.appContainer.style.opacity = 1; dom.appContainer.style.pointerEvents = 'auto'; gameState.turnPhase = 'character_select'; updateUI();
-        }
-
-        function updateUI() {
-            const { player, ai } = gameState;
-            if (gameState.turnPhase === 'main_menu') return;
-            const isPlaying = gameState.turnPhase === 'player_select';
-            dom.cardContainer.parentElement.classList.toggle('hidden', !isPlaying);
-            dom.nextTurnButton.classList.toggle('hidden', !['player_select', 'next_encounter'].includes(gameState.turnPhase));
-            dom.characterSelection.classList.toggle('hidden', gameState.turnPhase !== 'character_select');
-            dom.equipmentSelection.classList.toggle('hidden', gameState.turnPhase !== 'equipment_select');
-
-            if (gameState.turnPhase === 'character_select') { drawCharacterSelection(); dom.gameOverlay.style.display = 'flex'; return; }
-            if (gameState.turnPhase === 'equipment_select') { drawEquipmentSelection(); dom.gameOverlay.style.display = 'flex'; return; }
-
-            dom.gameOverlay.style.display = gameState.isGameOver ? 'flex' : 'none';
-            dom.finalBanner.classList.toggle('hidden', !gameState.isGameOver);
-            dom.finalRestartButton.classList.toggle('hidden', !gameState.isGameOver);
-
-            if(!dom.playerModel.classList.contains('attack-anim') && !dom.playerModel.classList.contains('final-attack-anim')) { dom.playerModel.style.backgroundImage = `url('${baseCharacterStats.sprite}')`; }
-            dom.aiModel.style.backgroundImage = `url('${ai.sprite}')`;
-            dom.aiNameDisplay.textContent = ai.name;
-            dom.encounterDisplay.textContent = `Encuentro ${gameState.currentEncounterIndex + 1}/${ENEMIES.length}`;
-            dom.playerHp.textContent = `${Math.max(0, player.hp)}/${player.maxHp}`; dom.aiHp.textContent = `${Math.max(0, ai.hp)}/${ai.maxHp}`;
-            dom.playerHealthFill.style.width = `${(player.hp/player.maxHp)*100}%`; dom.aiHealthFill.style.width = `${(ai.hp/ai.maxHp)*100}%`;
-            dom.playerEnergy.textContent = player.energy; dom.aiEnergy.textContent = ai.energy;
-
-            if (isPlaying) {
-                dom.nextTurnButton.textContent = player.selectedCard ? 'EJECUTAR GAMBITO' : 'ELIGE UNA CARTA';
-                dom.nextTurnButton.disabled = !player.selectedCard;
-            } else if (gameState.turnPhase === 'next_encounter') {
-                dom.nextTurnButton.textContent = 'SIGUIENTE ENEMIGO'; dom.nextTurnButton.disabled = false;
+            for (let i = 0; i < count; i++) {
+                const p = document.createElement('div'); p.className = 'particle';
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                p.style.backgroundColor = color;
+                p.style.left = centerX + 'px'; p.style.top = centerY + 'px';
+                const angle = Math.random() * Math.PI * 2; const dist = Math.random() * speed;
+                const tx = Math.cos(angle) * dist; const ty = Math.sin(angle) * dist;
+                container.appendChild(p);
+                p.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }], { duration: 500 + Math.random() * 300, easing: 'cubic-bezier(0, .9, .57, 1)' }).onfinish = () => p.remove();
             }
-            drawCards();
+        }
+
+        function spawnAmbientParticles() {
+            if (gameState.turnPhase === 'main_menu') return;
+            const container = document.getElementById('app-container');
+            const p = document.createElement('div'); p.className = 'ember';
+            p.style.left = Math.random() * 100 + '%'; p.style.top = '-10px';
+            container.appendChild(p);
+            p.animate([
+                { transform: 'translateY(0) translateX(0)', opacity: 0.8 },
+                { transform: `translateY(400px) translateX(${Math.random()*50-25}px)`, opacity: 0 }
+            ], { duration: 3000 + Math.random() * 2000, easing: 'linear' }).onfinish = () => p.remove();
+        }
+
+        function spawnFloatingText(targetIsPlayer, text, color, type = 'normal') {
+            const container = targetIsPlayer ? document.getElementById('player-model-container') : document.getElementById('ai-model-container');
+            const el = document.createElement('div'); el.className = `floating-text ${type}`; el.textContent = text;
+            if(type === 'normal') el.style.color = color;
+            el.style.left = '50%'; el.style.top = '20%'; el.style.transform = 'translate(-50%, -50%)';
+            container.appendChild(el); setTimeout(() => el.remove(), 1000);
+        }
+
+        function aiSpeak(text) {
+            const container = document.getElementById('ai-model-container');
+            const bubble = document.createElement('div');
+            bubble.className = 'speech-bubble'; bubble.textContent = text;
+            container.appendChild(bubble); AudioEngine.speech();
+            setTimeout(() => bubble.remove(), 2500);
+        }
+
+        function triggerFlash() {
+            const flash = document.getElementById('screen-flash'); flash.classList.remove('flash-anim');
+            void flash.offsetWidth; flash.classList.add('flash-anim');
+        }
+
+        function triggerUltEffect() {
+            const ult = document.getElementById('ult-overlay'); ult.classList.add('ult-active');
+            setTimeout(() => ult.classList.remove('ult-active'), 1000);
+            dom.appContainer.classList.add('shake'); setTimeout(() => dom.appContainer.classList.remove('shake'), 500);
+        }
+
+        function updateEnemyIntentUI() {
+            const intentEl = document.getElementById('enemy-intent');
+            const cardId = gameState.ai.selectedCard;
+            if(!cardId) { intentEl.classList.remove('visible'); return; }
+
+            let icon = ''; let text = '';
+            if(cardId === 'attack') {
+                icon = '⚔️'; let estimatedDmg = (gameState.ai.baseDamage || 10); text = estimatedDmg;
+            } else if (cardId === 'defend') { icon = '🛡️'; text = '';
+            } else if (cardId === 'gambit') { icon = '⚔️'; text = (gameState.ai.baseDamage || 10) * 2;
+            } else if (cardId === 'recharge' || cardId === 'meditate') { icon = '⚡'; text = ''; }
+
+            intentEl.innerHTML = `<span class="intent-icon">${icon}</span> ${text}`;
+            intentEl.classList.add('visible');
+        }
+
+        // --- UI RELIQUIAS ---
+        function updateRelicsUI() {
+            const container = document.getElementById('relics-container');
+            container.innerHTML = '';
+            gameState.player.relics.forEach(relic => {
+                const el = document.createElement('div'); el.className = 'relic-icon';
+                el.textContent = relic.icon; el.title = `${relic.name}: ${relic.desc}`;
+                container.appendChild(el);
+            });
+        }
+
+        function triggerRelics(type, context) {
+            gameState.player.relics.forEach(relic => {
+                if(relic.type === type) {
+                    relic.effect(gameState.player, context);
+                    logAction(`Reliquia activa: ${relic.name}`, true, 'system');
+                }
+            });
+        }
+
+        // --- MAPA ---
+        function updateMapUI() {
+            const map = document.getElementById('dungeon-map');
+            map.innerHTML = '';
+            ENEMIES.forEach((e, index) => {
+                const node = document.createElement('span'); node.className = 'map-node';
+                node.textContent = index === 2 ? '👹' : '💀';
+                if(index < gameState.currentEncounterIndex) node.classList.add('completed');
+                if(index === gameState.currentEncounterIndex) node.classList.add('active');
+                map.appendChild(node);
+            });
+        }
+
+        // --- LÓGICA DE COMBATE ---
+        function calculateDamage(source, target, baseAmount) {
+            if (Math.random() < 0.10) {
+                spawnFloatingText(target.isPlayer, "MISS", "", "miss"); AudioEngine.miss();
+                animateAction(target.isPlayer ? 'player' : 'ai', 'dodge');
+                logAction(`${target.name} esquiva el ataque!`, target.isPlayer, 'system');
+                return 0;
+            }
+            let isCrit = Math.random() < 0.15; let finalDamage = baseAmount;
+            if (isCrit) { finalDamage = Math.floor(finalDamage * 1.5); triggerFlash(); }
+            if (target.block > 0) {
+                let blocked = Math.min(finalDamage, target.block); finalDamage -= blocked; target.block -= blocked;
+                spawnFloatingText(target.isPlayer, "BLOCK", "#ffffff"); spawnParticles(target.isPlayer, 'block'); AudioEngine.block();
+            }
+            if (finalDamage > 0) {
+                target.hp -= finalDamage;
+                if (isCrit) { spawnFloatingText(target.isPlayer, `-${finalDamage}!`, "", "crit"); AudioEngine.crit(); }
+                else { spawnFloatingText(target.isPlayer, `-${finalDamage}`, "var(--damage-color)"); AudioEngine.hit(); }
+                spawnParticles(target.isPlayer, 'blood');
+                animateAction(target.isPlayer?'player':'ai', 'damage');
+                
+                if(target.isPlayer) {
+                    updateFury(finalDamage);
+                    triggerRelics('on_hit', source); // Reliquias al recibir daño (Ej: Espinas)
+                }
+                if(source.isPlayer) updateFury(10);
+            } else { logAction(`Daño mitigado completamente.`, true, 'system'); }
+            return finalDamage;
         }
 
         function animateAction(target, action) {
@@ -378,14 +578,220 @@
                 else if (action === 'final_attack') { spriteToShow = baseCharacterStats.action2; animClass = 'final-attack-anim'; duration = 1000; }
             }
             if (action === 'damage') animClass = 'shake';
+            if (action === 'dodge') animClass = 'dodge-anim';
 
             if (isPlayer && (action === 'attack' || action === 'final_attack')) { element.style.backgroundImage = `url('${spriteToShow}')`; }
-            if (animClass) { element.classList.remove('attack-anim', 'final-attack-anim', 'shake'); void element.offsetWidth; element.classList.add(animClass); }
+            if (animClass) { element.classList.remove('attack-anim', 'final-attack-anim', 'shake', 'dodge-anim'); void element.offsetWidth; element.classList.add(animClass); }
+            setTimeout(() => { element.classList.remove(animClass); if (isPlayer) { element.style.backgroundImage = `url('${baseCharacterStats.sprite}')`; } }, duration);
+        }
+
+        // --- CARTAS BÁSICAS (Con Sinergias) ---
+        const BASIC_CARDS = [
+            { id: 'attack', name: 'ATACAR', cost: 2, baseDamage: 10, effect: (s, t) => { 
+                let bonus = 0; if (t.burn > 0) { bonus = 10; logAction("¡Sinergia de Fuego! Daño doble.", true, 'danger'); }
+                let dmg = calculateDamage(s, t, (s.baseDamage || 10) + bonus);
+                if(dmg > 0){ t.burn = (t.burn || 0) + 3; spawnFloatingText(t.isPlayer, `+3 QUEMAR`, "var(--burn-color)"); animateAction(s.isPlayer?'player':'ai', 'attack'); logAction(`${s.name} ataca.`, true, s.isPlayer?'player':'ai'); }
+            }, description: 'Daño Base. Si Quemas: Doble Daño.', synergy: (s, t) => t.burn > 0 },
             
+            { id: 'defend', name: 'DEFENDER', cost: 1, effect: (s, t) => { 
+                s.block+=15; spawnFloatingText(s.isPlayer, "+15 ESC", "#00aaff"); spawnParticles(s.isPlayer, 'block'); AudioEngine.block(); logAction(`${s.name} sube guardia.`,true,'player'); animateAction(s.isPlayer?'player':'ai','defend'); 
+            }, description: '+15 Bloqueo.' },
+            
+            { id: 'gambit', name: 'GAMBITO', cost: 3, effect: (s, t) => { 
+                s.hp-=5; spawnFloatingText(s.isPlayer, "-5", "purple"); spawnParticles(s.isPlayer, 'blood');
+                let dmg = calculateDamage(s, t, (s.baseDamage || 10) * 2);
+                if(dmg > 0) animateAction(s.isPlayer?'player':'ai', 'attack'); logAction(`${s.name} sacrifica vida y golpea fuerte.`, true, 'player');
+            }, description: 'Doble Daño, -5 HP.' },
+            
+            { id: 'final_attack', name: 'ATAQUE FINAL', cost: 3, effect: (s, t) => { 
+                let finalDamage = 50; triggerFlash();
+                if(t.block > 0) { let b = Math.min(finalDamage, t.block); finalDamage -= b; t.block -= b; }
+                if(finalDamage > 0) { t.hp -= finalDamage; spawnFloatingText(t.isPlayer, `-${finalDamage}!!!`, "red"); spawnParticles(t.isPlayer, 'explosion'); AudioEngine.hit(); setTimeout(() => AudioEngine.hit(), 200); animateAction(t.isPlayer?'player':'ai', 'damage'); if(s.isPlayer) updateFury(20); }
+                logAction(`¡${s.name} USA ATAQUE FINAL!`,true,'player'); animateAction(s.isPlayer?'player':'ai','final_attack'); 
+            }, description: 'Golpe definitivo (50 daño).' },
+            
+            { id: 'recharge', name: 'RECARGAR', cost: 0, effect: (s) => { 
+                s.energy=Math.min(s.maxEnergy,s.energy+2); spawnFloatingText(s.isPlayer, "+2 ENERGÍA", "yellow"); spawnParticles(s.isPlayer, 'energy'); AudioEngine.heal(); logAction(`${s.name} recarga energía.`,true,'player'); 
+            }, description: '+2 Energía.' },
+            
+            { id: 'meditate', name: 'MEDITAR', cost: 1, effect: (s) => { 
+                s.hp=Math.min(s.maxHp,s.hp+15); spawnFloatingText(s.isPlayer, "+15 HP", "var(--heal-color)"); spawnParticles(s.isPlayer, 'heal'); AudioEngine.heal(); logAction(`${s.name} se cura.`,true,'heal'); 
+            }, description: '+15 HP.' }
+        ];
+
+        // --- CARTAS ESPECIALES (RECOMPENSAS) ---
+        const SPECIAL_CARDS = [
+            { id: 'vamp', name: 'VAMPIRISMO', cost: 2, rare: true, effect: (s, t) => {
+                let dmg = calculateDamage(s, t, 12);
+                if(dmg > 0) { s.hp = Math.min(s.maxHp, s.hp + dmg); spawnFloatingText(s.isPlayer, `+${dmg} HP`, "var(--heal-color)"); spawnParticles(s.isPlayer, 'heal'); logAction(`${s.name} roba vida.`, true, 'heal'); }
+            }, description: 'Dañas y te curas el daño.' },
+            { id: 'stun', name: 'PARALIZAR', cost: 3, rare: true, effect: (s, t) => {
+                let dmg = calculateDamage(s, t, 5); t.energy = Math.max(0, t.energy - 2); spawnFloatingText(t.isPlayer, "-2 ENERGÍA", "blue"); logAction(`${s.name} drena energía.`, true, 'system');
+            }, description: '5 Daño, -2 Energía rival.' },
+            { id: 'kamikaze', name: 'KAMIKAZE', cost: 2, rare: true, effect: (s, t) => {
+                s.hp -= 15; spawnFloatingText(s.isPlayer, "-15", "red"); let dmg = calculateDamage(s, t, 40); logAction(`${s.name} explota con furia.`, true, 'damage');
+            }, description: '40 Daño, recibes 15 daño.' }
+        ];
+
+        const ENEMIES = [
+            { name: "ESPECTRO IA", sprite: "Espectro_IA.png.png", maxHp: 100, energy: 3, maxEnergy:3, baseDamage: 8, strategy: 'basic' },
+            { name: "GUERRERO ORCO", sprite: "Orco.png", maxHp: 250, energy: 3, maxEnergy:3, baseDamage: 12, strategy: 'aggressive' },
+            { name: "MAGO SOMBRÍO", sprite: "Mago_sombrio.png", maxHp: 200, energy: 4, maxEnergy:4, baseDamage: 15, strategy: 'energy_focus' }
+        ];
+
+        const EQUIPMENT = [
+            { id: 'guante', name: 'Guante Poder', description: '+5 Daño', sprite: 'Guante.png', apply: (p) => p.baseDamage += 5 },
+            { id: 'cristal', name: 'Cristal Energía', description: '+1 Energía Max', sprite: 'Cristal.png', apply: (p) => { p.maxEnergy++; p.energy++; } },
+            { id: 'amuleto', name: 'Amuleto Vida', description: '+20 HP', sprite: 'Corazon.png', apply: (p) => { p.maxHp+=20; p.hp+=20; } }
+        ];
+
+        // RECOMPENSAS ROGUELIKE (Mezcla Stats, Cartas y Reliquias)
+        const REWARDS = [
+            { id: 'heal', text: 'Poción Mayor', desc: 'Curar 50 HP', icon: '🍎', apply: (p) => { p.hp = Math.min(p.maxHp, p.hp + 50); logAction("Jugador se cura 50 HP.", true, 'heal'); } },
+            { id: 'damage', text: 'Piedra de Afilar', desc: '+3 Daño Base', icon: '⚔️', apply: (p) => { p.baseDamage += 3; logAction("¡Daño base aumentado!", true, 'system'); } },
+            { id: 'fury', text: 'Esencia Pura', desc: 'Llenar Furia', icon: '⚡', apply: (p) => { updateFury(100); logAction("¡Furia al máximo!", true, 'system'); } },
+            
+            { id: 'card_vamp', text: 'Carta: Vampirismo', desc: 'Añadir al mazo', icon: '🩸', apply: (p) => { p.deck.push(SPECIAL_CARDS[0]); logAction("¡Carta Vampirismo obtenida!", true, 'system'); } },
+            { id: 'card_stun', text: 'Carta: Paralizar', desc: 'Añadir al mazo', icon: '🌀', apply: (p) => { p.deck.push(SPECIAL_CARDS[1]); logAction("¡Carta Paralizar obtenida!", true, 'system'); } },
+            { id: 'card_kami', text: 'Carta: Kamikaze', desc: 'Añadir al mazo', icon: '💣', apply: (p) => { p.deck.push(SPECIAL_CARDS[2]); logAction("¡Carta Kamikaze obtenida!", true, 'system'); } },
+
+            { id: 'relic_vamp', text: 'Reliquia: Cráneo', desc: 'Curar al matar', icon: '💀', apply: (p) => { p.relics.push(RELICS[0]); updateRelicsUI(); logAction("¡Reliquia obtenida!", true, 'system'); } },
+            { id: 'relic_thorns', text: 'Reliquia: Espinas', desc: 'Devolver daño', icon: '🌵', apply: (p) => { p.relics.push(RELICS[1]); updateRelicsUI(); logAction("¡Reliquia obtenida!", true, 'system'); } },
+            { id: 'relic_batt', text: 'Reliquia: Batería', desc: '+1 Energía Turno 1', icon: '🔋', apply: (p) => { p.relics.push(RELICS[2]); updateRelicsUI(); logAction("¡Reliquia obtenida!", true, 'system'); } }
+        ];
+
+        let gameState = { player: { name: 'IGNIS', maxHp: 100, hp: 100, energy: 3, maxEnergy: 3, block: 0, burn: 0, fury: 0, selectedCard: null, isPlayer: true, baseDamage: 10, deck: [], relics: [] }, ai: { name: '', maxHp: 0, hp: 0, energy: 0, maxEnergy: 0, block: 0, burn: 0, isPlayer: false, sprite: '' }, currentEncounterIndex: 0, turn: 1, turnPhase: 'main_menu', isGameOver: false, defeatedEnemies: 0 };
+        let baseCharacterStats = PLAYABLE_CHARACTERS[0]; 
+
+        const dom = {
+            playerHp: document.getElementById('player-hp'), playerEnergy: document.getElementById('player-energy'), playerHealthFill: document.getElementById('player-health-fill'), 
+            playerFury: document.getElementById('player-fury'), playerFuryFill: document.getElementById('player-fury-fill'), limitBreakBtn: document.getElementById('limit-break-btn'),
+            playerEquipment: document.getElementById('player-equipment'), aiHp: document.getElementById('ai-hp'), aiEnergy: document.getElementById('ai-energy'), aiHealthFill: document.getElementById('ai-health-fill'),
+            cardContainer: document.getElementById('card-container'), logPanel: document.getElementById('log-panel'), nextTurnButton: document.getElementById('next-turn-button'),
+            gameOverlay: document.getElementById('game-overlay'), finalBanner: document.getElementById('final-banner'), finalRestartButton: document.getElementById('final-restart-button'),
+            playerModel: document.getElementById('player-model'), aiModel: document.getElementById('ai-model'), aiNameDisplay: document.getElementById('ai-name-display'), encounterDisplay: document.getElementById('encounter-display'),
+            characterSelection: document.getElementById('character-selection'), characterOptionsContainer: document.getElementById('character-options-container'),
+            equipmentSelection: document.getElementById('equipment-selection'), equipmentOptionsContainer: document.getElementById('equipment-options-container'),
+            rewardSelection: document.getElementById('reward-selection'), rewardOptionsContainer: document.getElementById('reward-options-container'),
+            mainMenuOverlay: document.getElementById('main-menu-overlay'), appContainer: document.getElementById('app-container'), startGameButton: document.getElementById('start-game-button'), creditsButton: document.getElementById('credits-button'), 
+            pauseButton: document.getElementById('pause-button'), settingsButton: document.getElementById('settings-button'), exitButton: document.getElementById('exit-button'),
+            playerBurnInd: document.getElementById('player-burn-indicator'), aiBurnInd: document.getElementById('ai-burn-indicator'), highscoreDisplay: document.getElementById('highscore-display')
+        };
+
+        function logAction(msg, isPlayer, type) {
+            const div = document.createElement('div'); div.textContent = `[T${gameState.turn}] ${msg}`; div.className = `log-entry-${type}`; dom.logPanel.prepend(div);
+        }
+
+        function loadHighscore() {
+            const score = localStorage.getItem('ignis_highscore') || 0;
+            dom.highscoreDisplay.textContent = `MEJOR RACHA: ${score}`;
+        }
+
+        function saveHighscore() {
+            const current = localStorage.getItem('ignis_highscore') || 0;
+            if (gameState.defeatedEnemies > current) {
+                localStorage.setItem('ignis_highscore', gameState.defeatedEnemies);
+                loadHighscore();
+            }
+        }
+
+        function startGame() {
+            AudioEngine.init(); 
+            preloadImages(); dom.mainMenuOverlay.style.display = 'none'; dom.appContainer.style.opacity = 1; dom.appContainer.style.pointerEvents = 'auto'; gameState.turnPhase = 'character_select'; updateUI();
+            setInterval(spawnAmbientParticles, 300);
+            loadHighscore();
+        }
+
+        function updateFury(amount) {
+            let oldFury = gameState.player.fury;
+            gameState.player.fury = Math.min(100, gameState.player.fury + amount);
+            if (oldFury < 100 && gameState.player.fury >= 100) { AudioEngine.limitReady(); logAction("¡FURIA MÁXIMA! ¡LIMIT BREAK LISTO!", true, 'system'); }
+            updateUI();
+        }
+
+        function useLimitBreak() {
+            if (gameState.player.fury < 100) return;
+            AudioEngine.limitCast(); triggerUltEffect();
+            let damage = 100; gameState.ai.hp -= damage;
+            spawnFloatingText(false, `-${damage} FATAL`, "red"); spawnParticles(false, 'explosion');
+            gameState.player.fury = 0; dom.limitBreakBtn.classList.remove('visible');
+            logAction("¡¡¡EXPLOSIÓN INFERNAL!!!", true, 'player');
+            gameState.turnPhase = 'resolving'; updateUI();
             setTimeout(() => {
-                element.classList.remove(animClass);
-                if (isPlayer) { element.style.backgroundImage = `url('${baseCharacterStats.sprite}')`; }
-            }, duration);
+                if(gameState.ai.hp <= 0) { winEncounter(); return; }
+                const aiDeck = BASIC_CARDS; 
+                const aCard = aiDeck.find(c=>c.id === gameState.ai.selectedCard);
+                processBurn(gameState.ai);
+                if(gameState.ai.hp <= 0) { winEncounter(); return; }
+                if(aCard) { gameState.ai.energy -= aCard.cost; aCard.effect(gameState.ai, gameState.player); }
+                if(gameState.player.hp <= 0) { endGame(false); return; }
+                gameState.player.selectedCard = null; gameState.turn++; startTurn();
+            }, 1500);
+        }
+
+        dom.limitBreakBtn.onclick = useLimitBreak;
+
+        function updateUI() {
+            const { player, ai } = gameState;
+            if (gameState.turnPhase === 'main_menu') return;
+            const isPlaying = gameState.turnPhase === 'player_select';
+            dom.cardContainer.parentElement.classList.toggle('hidden', !isPlaying);
+            dom.nextTurnButton.classList.toggle('hidden', !['player_select', 'next_encounter'].includes(gameState.turnPhase));
+            
+            dom.characterSelection.classList.toggle('hidden', gameState.turnPhase !== 'character_select');
+            dom.equipmentSelection.classList.toggle('hidden', gameState.turnPhase !== 'equipment_select');
+            dom.rewardSelection.classList.toggle('hidden', gameState.turnPhase !== 'reward_select');
+
+            if (gameState.turnPhase === 'character_select') { drawCharacterSelection(); dom.gameOverlay.style.display = 'flex'; return; }
+            if (gameState.turnPhase === 'equipment_select') { drawEquipmentSelection(); dom.gameOverlay.style.display = 'flex'; return; }
+            if (gameState.turnPhase === 'reward_select') { drawRewardSelection(); dom.gameOverlay.style.display = 'flex'; dom.finalBanner.classList.add('hidden'); return; }
+
+            dom.gameOverlay.style.display = gameState.isGameOver ? 'flex' : 'none';
+            dom.finalBanner.classList.toggle('hidden', !gameState.isGameOver);
+            dom.finalRestartButton.classList.toggle('hidden', !gameState.isGameOver);
+
+            if(!dom.playerModel.classList.contains('attack-anim') && !dom.playerModel.classList.contains('final-attack-anim')) { dom.playerModel.style.backgroundImage = `url('${baseCharacterStats.sprite}')`; }
+            dom.aiModel.style.backgroundImage = `url('${ai.sprite}')`;
+            dom.aiNameDisplay.textContent = ai.name;
+            
+            updateMapUI();
+            
+            dom.playerHp.textContent = `${Math.max(0, player.hp)}/${player.maxHp}`; dom.aiHp.textContent = `${Math.max(0, ai.hp)}/${ai.maxHp}`;
+            dom.playerHealthFill.style.width = `${(player.hp/player.maxHp)*100}%`; dom.aiHealthFill.style.width = `${(ai.hp/ai.maxHp)*100}%`;
+            dom.playerEnergy.textContent = player.energy; dom.aiEnergy.textContent = ai.energy;
+
+            dom.playerBurnInd.classList.toggle('hidden', !player.burn || player.burn <= 0); dom.playerBurnInd.textContent = `🔥${player.burn}`; dom.playerModel.classList.toggle('burning-effect', player.burn > 0);
+            dom.aiBurnInd.classList.toggle('hidden', !ai.burn || ai.burn <= 0); dom.aiBurnInd.textContent = `🔥${ai.burn}`; dom.aiModel.classList.toggle('burning-effect', ai.burn > 0);
+            dom.playerFury.textContent = Math.floor(player.fury);
+            dom.playerFuryFill.style.width = `${player.fury}%`;
+            
+            if (player.fury >= 100 && isPlaying) dom.limitBreakBtn.classList.add('visible'); else dom.limitBreakBtn.classList.remove('visible');
+
+            if (isPlaying) {
+                dom.nextTurnButton.textContent = player.selectedCard ? 'EJECUTAR GAMBITO' : 'ELIGE UNA CARTA';
+                dom.nextTurnButton.disabled = !player.selectedCard;
+                updateEnemyIntentUI(); 
+            } else if (gameState.turnPhase === 'next_encounter') {
+                dom.nextTurnButton.textContent = 'SIGUIENTE ENEMIGO'; dom.nextTurnButton.disabled = false;
+                document.getElementById('enemy-intent').classList.remove('visible');
+            }
+            drawCards();
+        }
+
+        function updateEnemyIntentUI() {
+            const intentEl = document.getElementById('enemy-intent');
+            const cardId = gameState.ai.selectedCard;
+            if(!cardId) { intentEl.classList.remove('visible'); return; }
+
+            let icon = ''; let text = '';
+            if(cardId === 'attack') {
+                icon = '⚔️'; let estimatedDmg = (gameState.ai.baseDamage || 10); text = estimatedDmg;
+            } else if (cardId === 'defend') { icon = '🛡️'; text = '';
+            } else if (cardId === 'gambit') { icon = '⚔️'; text = (gameState.ai.baseDamage || 10) * 2;
+            } else if (cardId === 'recharge' || cardId === 'meditate') { icon = '⚡'; text = ''; }
+
+            intentEl.innerHTML = `<span class="intent-icon">${icon}</span> ${text}`;
+            intentEl.classList.add('visible');
         }
 
         function drawCharacterSelection() {
@@ -393,7 +799,7 @@
             PLAYABLE_CHARACTERS.forEach(char => {
                 const div = document.createElement('div'); div.className = 'equipment-option p-4 text-center';
                 div.innerHTML = `<div class="equipment-sprite" style="background-image: url('${char.sprite}')"></div><p class="text-neon">${char.name}</p><p class="text-xs">${char.description}</p>`;
-                div.onclick = () => { baseCharacterStats = char; gameState.player = { ...gameState.player, name: char.name.split('(')[0].trim(), maxHp: char.maxHp, hp: char.maxHp, maxEnergy: char.maxEnergy, energy: char.maxEnergy, baseDamage: char.baseDamage }; CARDS.find(c=>c.id==='attack').baseDamage = char.baseDamage; gameState.turnPhase = 'equipment_select'; updateUI(); };
+                div.onclick = () => { AudioEngine.click(); baseCharacterStats = char; gameState.player = { ...gameState.player, name: char.name.split('(')[0].trim(), maxHp: char.maxHp, hp: char.maxHp, maxEnergy: char.maxEnergy, energy: char.maxEnergy, baseDamage: char.baseDamage, deck: [...BASIC_CARDS], relics: [] }; gameState.turnPhase = 'equipment_select'; updateUI(); };
                 dom.characterOptionsContainer.appendChild(div);
             });
         }
@@ -403,33 +809,92 @@
             EQUIPMENT.forEach(eq => {
                 const div = document.createElement('div'); div.className = 'equipment-option p-4 text-center';
                 div.innerHTML = `<div class="equipment-sprite" style="background-image: url('${eq.sprite}')"></div><p class="text-neon">${eq.name}</p><p class="text-xs">${eq.description}</p>`;
-                div.onclick = () => { eq.apply(gameState.player); gameState.player.equipment = eq; dom.gameOverlay.style.display = 'none'; startEncounter(); };
+                div.onclick = () => { AudioEngine.click(); eq.apply(gameState.player); gameState.player.equipment = eq; dom.gameOverlay.style.display = 'none'; startEncounter(); };
                 dom.equipmentOptionsContainer.appendChild(div);
             });
         }
 
+        function drawRewardSelection() {
+            dom.rewardOptionsContainer.innerHTML = '';
+            const shuffled = REWARDS.sort(() => 0.5 - Math.random()).slice(0, 3);
+            shuffled.forEach(rew => {
+                const div = document.createElement('div'); div.className = 'reward-card';
+                div.innerHTML = `<div class="reward-icon">${rew.icon}</div><p class="text-neon">${rew.text}</p><p class="text-xs">${rew.desc}</p>`;
+                div.onclick = () => { AudioEngine.relic(); rew.apply(gameState.player); nextEncounterAfterReward(); };
+                dom.rewardOptionsContainer.appendChild(div);
+            });
+        }
+
         function startEncounter() {
-            const enemy = ENEMIES[gameState.currentEncounterIndex];
-            gameState.player.hp = Math.min(gameState.player.maxHp, gameState.player.hp + 30);
-            gameState.ai = { ...gameState.ai, ...enemy, hp: enemy.maxHp, energy: enemy.energy };
+            if (gameState.currentEncounterIndex >= ENEMIES.length) gameState.currentEncounterIndex = 0;
+            const enemyTemplate = ENEMIES[gameState.currentEncounterIndex];
+            const difficultyMultiplier = 1 + (Math.floor(gameState.defeatedEnemies / 3) * 0.3);
+            
+            gameState.player.burn = 0; gameState.player.fury = 0; 
+            gameState.ai = { 
+                ...enemyTemplate, 
+                hp: Math.floor(enemyTemplate.maxHp * difficultyMultiplier),
+                maxHp: Math.floor(enemyTemplate.maxHp * difficultyMultiplier),
+                baseDamage: Math.floor((enemyTemplate.baseDamage || 8) * difficultyMultiplier),
+                energy: enemyTemplate.energy, burn: 0, scale: 0 
+            };
+            
+            // Reliquias de inicio de combate
+            triggerRelics('combat_start', gameState.ai);
+
             gameState.turn = 1; gameState.turnPhase = 'player_select';
-            logAction(`VS ${enemy.name}`, false, 'system'); startTurn();
+            logAction(`VS ${gameState.ai.name} (Loop ${Math.floor(gameState.defeatedEnemies / 3) + 1})`, false, 'system'); startTurn();
+        }
+
+        function processBurn(character) {
+            if (character.burn > 0) {
+                let dmg = character.burn; character.hp -= dmg; character.burn -= 1;
+                spawnFloatingText(character.isPlayer, `-${dmg} 🔥`, "var(--burn-color)"); spawnParticles(character.isPlayer, 'fire'); AudioEngine.burn();
+                logAction(`${character.name} sufre ${dmg} por quemadura.`, false, 'burn');
+                if(character.isPlayer) updateFury(dmg);
+                updateUI();
+                return dmg;
+            } return 0;
+        }
+
+        function calculateAiMove() {
+            const ai = gameState.ai; const p = gameState.player;
+            const validCards = BASIC_CARDS.filter(c => c.cost <= ai.energy);
+            if(validCards.length === 0) { aiSpeak("¡Necesito poder!"); return 'recharge'; }
+            if (p.hp <= 25) { const attack = validCards.find(c => c.id === 'attack'); if (attack) { aiSpeak("¡Muere ahora!"); return 'attack'; } }
+            if ((p.fury > 80) && validCards.find(c => c.id === 'defend')) { aiSpeak("¡Te veo venir!"); return 'defend'; }
+            if (ai.hp < ai.maxHp * 0.25 && validCards.find(c => c.id === 'meditate')) { aiSpeak("La oscuridad sana..."); return 'meditate'; }
+            if (ai.hp > 100 && validCards.find(c => c.id === 'gambit')) { aiSpeak("¡Siente mi ira!"); return 'gambit'; }
+            const attack = validCards.find(c => c.id === 'attack');
+            if(attack) { const taunts = ["¡Toma!", "¡Débil!", "¡Ja!"]; if(Math.random() > 0.7) aiSpeak(taunts[Math.floor(Math.random() * taunts.length)]); return 'attack'; }
+            aiSpeak("Hmm..."); return 'recharge';
+        }
+
+        function scaleEnemyPower() {
+            gameState.ai.baseDamage += 3; gameState.ai.scale++;
+            spawnFloatingText(false, "¡PODER UP!", "#ff00ff");
+            logAction(`${gameState.ai.name} se vuelve más fuerte (+3 Daño).`, false, 'danger');
+            dom.aiModel.classList.remove('power-up-anim'); void dom.aiModel.offsetWidth; dom.aiModel.classList.add('power-up-anim'); AudioEngine.powerUp();
         }
 
         function startTurn() {
             gameState.turnPhase = 'player_select'; gameState.player.energy = gameState.player.maxEnergy; gameState.ai.energy = gameState.ai.maxEnergy; gameState.player.block = 0; gameState.ai.block = 0;
-            const validCards = CARDS.filter(c => c.cost <= gameState.ai.energy);
-            if(validCards.length) { const attack = validCards.find(c=>c.id==='attack'); gameState.ai.selectedCard = attack ? 'attack' : 'recharge'; } else gameState.ai.selectedCard = 'recharge';
-            updateUI();
+            if (gameState.turn > 1) scaleEnemyPower();
+            processBurn(gameState.player);
+            if(gameState.player.hp <= 0) { endGame(false); return; }
+            gameState.ai.selectedCard = calculateAiMove();
+            updateUI(); 
         }
 
         function drawCards() {
             dom.cardContainer.innerHTML = '';
             if(gameState.turnPhase !== 'player_select') return;
-            CARDS.forEach(card => {
+            gameState.player.deck.forEach(card => {
                 const div = document.createElement('div'); div.className = 'card';
+                if (card.synergy && card.synergy(gameState.player, gameState.ai)) div.classList.add('synergy-active');
+                if(card.rare) div.classList.add('rare');
                 if(gameState.player.energy < card.cost) div.style.opacity = 0.5;
-                else div.onclick = () => { gameState.player.selectedCard = card.id; updateUI(); };
+                else div.onclick = () => { AudioEngine.click(); gameState.player.selectedCard = card.id; updateUI(); };
                 if(gameState.player.selectedCard === card.id) div.style.borderColor = 'var(--damage-color)';
                 div.innerHTML = `<div class="flex justify-between"><span class="card-title">${card.name}</span><span class="card-cost">${card.cost}E</span></div><div class="card-effect">${card.description}</div>`;
                 dom.cardContainer.appendChild(div);
@@ -438,11 +903,16 @@
 
         dom.nextTurnButton.onclick = () => {
             if(gameState.turnPhase === 'next_encounter') { startEncounter(); return; }
-            gameState.turnPhase = 'resolving'; updateUI();
-            const pCard = CARDS.find(c=>c.id === gameState.player.selectedCard);
-            const aCard = CARDS.find(c=>c.id === gameState.ai.selectedCard);
+            AudioEngine.click(); gameState.turnPhase = 'resolving'; updateUI();
+            
+            const pCard = gameState.player.deck.find(c=>c.id === gameState.player.selectedCard);
+            const aCard = BASIC_CARDS.find(c=>c.id === gameState.ai.selectedCard);
+            
             if(pCard) { gameState.player.energy -= pCard.cost; pCard.effect(gameState.player, gameState.ai); }
+            
             setTimeout(() => {
+                if(gameState.ai.hp <= 0) { winEncounter(); return; }
+                processBurn(gameState.ai);
                 if(gameState.ai.hp <= 0) { winEncounter(); return; }
                 if(aCard) { gameState.ai.energy -= aCard.cost; aCard.effect(gameState.ai, gameState.player); }
                 if(gameState.player.hp <= 0) { endGame(false); return; }
@@ -451,20 +921,33 @@
         };
 
         function winEncounter() {
-            gameState.currentEncounterIndex++;
-            if(gameState.currentEncounterIndex >= ENEMIES.length) endGame(true); else { gameState.turnPhase = 'next_encounter'; updateUI(); }
+            AudioEngine.win(); gameState.defeatedEnemies++; saveHighscore();
+            // Trigger relics on kill
+            triggerRelics('on_kill', gameState.player);
+            
+            // Check for Merchant Event (20% chance)
+            if (Math.random() < 0.2) {
+                // To be implemented: Merchant logic. For now, simple rewards.
+                gameState.turnPhase = 'reward_select';
+            } else {
+                gameState.turnPhase = 'reward_select';
+            }
+            updateUI();
+        }
+
+        function nextEncounterAfterReward() {
+            dom.gameOverlay.style.display = 'none'; gameState.currentEncounterIndex++; gameState.turnPhase = 'next_encounter'; updateUI();
         }
 
         function endGame(win) {
-            gameState.isGameOver = true; gameState.turnPhase = 'finished';
-            dom.finalBanner.style.backgroundImage = win ? "url('Banner_Victoria.jpg')" : "url('Banner_Derrota.jpg')";
-            updateUI();
+            gameState.isGameOver = true; gameState.turnPhase = 'finished'; saveHighscore();
+            dom.finalBanner.style.backgroundImage = win ? "url('Banner_Victoria.png')" : "url('Banner_Derrota.png')";
+            if(win) AudioEngine.win(); else AudioEngine.lose(); updateUI();
         }
 
         dom.finalRestartButton.onclick = () => window.location.reload();
         dom.startGameButton.onclick = startGame;
         
-        // Lógica básica de botones
         dom.pauseButton.onclick = () => alert("Juego Pausado");
         document.getElementById('settings-button').onclick = () => alert("Configuración");
         document.getElementById('exit-button').onclick = () => { if(confirm('¿Salir?')) location.reload(); };
@@ -472,3 +955,4 @@
     </script>
 </body>
 </html>
+
